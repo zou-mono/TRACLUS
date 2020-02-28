@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule="true" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output url="file://$MODULE_DIR$/target/classes" />
+    <output-test url="file://$MODULE_DIR$/target/test-classes" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="library" name="Maven: org.geotools:gt-shapefile:20-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.geotools:gt-data:20-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.geotools:gt-main:20-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.geotools:gt-api:20-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.geotools:gt-referencing:20-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.ejml:ejml-ddense:0.34" level="project" />
+    <orderEntry type="library" name="Maven: org.ejml:ejml-core:0.34" level="project" />
+    <orderEntry type="library" name="Maven: commons-pool:commons-pool:1.5.4" level="project" />
+    <orderEntry type="library" name="Maven: org.geotools:gt-metadata:20-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.geotools:gt-opengis:20-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: systems.uom:systems-common-java8:0.7.2" level="project" />
+    <orderEntry type="library" name="Maven: tec.uom:uom-se:1.0.8" level="project" />
+    <orderEntry type="library" name="Maven: javax.measure:unit-api:1.0" level="project" />
+    <orderEntry type="library" name="Maven: tec.uom.lib:uom-lib-common:1.0.2" level="project" />
+    <orderEntry type="library" name="Maven: si.uom:si-quantity:0.7.1" level="project" />
+    <orderEntry type="library" name="Maven: si.uom:si-units-java8:0.7.1" level="project" />
+    <orderEntry type="library" name="Maven: jgridshift:jgridshift:1.0" level="project" />
+    <orderEntry type="library" name="Maven: net.sf.geographiclib:GeographicLib-Java:1.49" level="project" />
+    <orderEntry type="library" name="Maven: org.locationtech.jts:jts-core:1.16.0" level="project" />
+    <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-core:2.9.9" level="project" />
+    <orderEntry type="library" name="Maven: org.jdom:jdom2:2.0.6" level="project" />
+    <orderEntry type="library" name="Maven: javax.media:jai_core:1.1.3" level="project" />
+  </component>
+</module>
