@@ -27,7 +27,7 @@ public class ClusterGen {
     private CMDPoint m_projectionPoint; // = new CMDPoint( m_document.m_nDimensions);;
     double m_coefficient;
     private STRtree m_tree; //空间索引
-    private HashMap<Integer, Set<Integer>> m_searchRegion = new HashMap<>(); //存储所有点的空间索引范围
+    private HashMap<Integer, Deque<Integer>> m_searchRegion = new HashMap<>(); //存储所有点的空间索引范围
 
     private ArrayList<LineSegmentId> m_idArray = new ArrayList<ClusterGen.LineSegmentId>();
 
@@ -41,9 +41,10 @@ public class ClusterGen {
     public static final int UNCLASSIFIED = -2;
     public static final int NOISE = -1;
 
-    private static final double MIN_LINESEGMENT_LENGTH = 500; //50 500
+    private static final double MIN_LINESEGMENT_LENGTH = 100; //100 500
+    private static final double MIN_DIFFERENT_LENGTH = MIN_LINESEGMENT_LENGTH / 1.414;
 
-    private static final int MDL_COST_ADWANTAGE = 50; //25 50
+    private static final int MDL_COST_ADWANTAGE = 25; //25 50
     private static final int INT_MAX = Integer.MAX_VALUE;
 
     // used for InsertClusterPoint() and ReplaceClusterPoint()
@@ -106,12 +107,14 @@ public class ClusterGen {
     public boolean constructCluster() {
         // this step consists of two sub-steps
         // notice that the result of the previous sub-step is used in the following sub-steps
+        System.out.println("开始构建新的轨迹...\n");
         if (!constructLineSegmentCluster()) {
             return false;
         }
         if (!storeLineSegmentCluster()) {
             return false;
         }
+        System.out.println("新轨迹构建完成.\n");
         return true;
     }
 
@@ -148,6 +151,7 @@ public class ClusterGen {
                 m_currComponentId++;
             }
         }
+        System.out.println("聚类后的类别数目是:"+m_currComponentId);
         return true;
     }
 
@@ -162,6 +166,9 @@ public class ClusterGen {
         m_nTotalLineSegments = 0;
         for (int i = 0; i < m_document.m_trajectoryList.size(); i++) {
             Trajectory pTrajectory = m_document.m_trajectoryList.get(i);
+//            if(m_nTotalLineSegments==115){
+//                System.out.println("test");
+//            }
 
             for (int j = 0; j < pTrajectory.getM_nPartitionPoints() - 1; j++) {
                 // convert an n-dimensional line segment into a 2n-dimensional point
@@ -196,6 +203,9 @@ public class ClusterGen {
 //                            cmdpt.get(k).getM_coordinate(3) != endPoint.getM_coordinate(1)){
 //                        cmdpt.add(lineSegmentPoint);
 //                        break;
+//                    }else{
+//                        System.out.println(m_nTotalLineSegments);
+//                        break;
 //                    }
 //                }
 
@@ -205,15 +215,16 @@ public class ClusterGen {
             }
         }
 
+        System.out.println("分段后的线段数目是:" + m_nTotalLineSegments);
         m_tree.build();
 
 //        long startTime=System.currentTimeMillis();
 //        for(int i = 0; i < m_nTotalLineSegments; i++){
-//            Set<Integer> seeds = new HashSet<Integer>();
+//            Deque<Integer> seeds = new ArrayDeque<>();
 //            extractStartAndEndPoints(i, m_startPoint1, m_endPoint1);
-//            computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seeds);
+//            computeEPSNeighborhoodByRtree2(m_startPoint1, m_endPoint1, eps, seeds);
 //            m_searchRegion.put(i, seeds);
-////            System.out.println(i);
+//            System.out.println(i);
 //        }
 //        long endTime=System.currentTimeMillis();
 //        System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
@@ -439,9 +450,9 @@ public class ClusterGen {
 //        if (index % 100 == 0)
         System.out.println("processed(cluster) " + index + "...");
 
-        if(index==43){
-            System.out.println("slow");
-        }
+//        if(index==43){
+//            System.out.println("slow");
+//        }
 
         Set<Integer> seeds = new HashSet<Integer>();
         Set<Integer> seedResult = new HashSet<Integer>();
@@ -449,7 +460,7 @@ public class ClusterGen {
         int currIndex;
 
         extractStartAndEndPoints(index, m_startPoint1, m_endPoint1);
-        computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seeds); //computeEPSNeighborhoodByRtree computeEPSNeighborhood
+        computeEPSNeighborhood(m_startPoint1, m_endPoint1, eps, seeds); //computeEPSNeighborhoodByRtree computeEPSNeighborhood
 //        seeds = m_searchRegion.get(index);
 
         if ((int) seeds.size() < minDensity) { //  not a core line segment
@@ -465,7 +476,7 @@ public class ClusterGen {
             currIndex = (Integer) seeds.toArray()[0];
 
             extractStartAndEndPoints(currIndex, m_startPoint1, m_endPoint1);
-            computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seedResult);
+            computeEPSNeighborhood(m_startPoint1, m_endPoint1, eps, seedResult);
 //            seedResult = m_searchRegion.get(currIndex);
 
             if ((int) seedResult.size() >= minDensity) {
@@ -500,7 +511,7 @@ public class ClusterGen {
         int currIndex;
 
         extractStartAndEndPoints(index, m_startPoint1, m_endPoint1);
-        computeEPSNeighborhoodByRtree2(m_startPoint1, m_endPoint1, eps, seeds); //computeEPSNeighborhoodByRtree computeEPSNeighborhood
+        computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seeds); //computeEPSNeighborhoodByRtree computeEPSNeighborhood
 //        seeds = m_searchRegion.get(index);
 
         if ((int) seeds.size() < minDensity) { //  not a core line segment
@@ -511,20 +522,20 @@ public class ClusterGen {
         for (int i = 0; i < seeds.size(); i++) {
             m_componentIdArray.set((Integer) (seeds.toArray()[i]), componentId);
         }
-        seeds.removeFirst();
+        seeds.remove(index);
         while (!seeds.isEmpty()) {
             currIndex = seeds.getFirst();
 
             extractStartAndEndPoints(currIndex, m_startPoint1, m_endPoint1);
-            computeEPSNeighborhoodByRtree2(m_startPoint1, m_endPoint1, eps, seedResult);
+            computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seedResult);
 //            seedResult = m_searchRegion.get(currIndex);
 
-            if ((int) seedResult.size() >= minDensity) {
+            if (seedResult.size() >= minDensity) {
                 for(Integer iter: seedResult){
                     if (m_componentIdArray.get(iter) == UNCLASSIFIED ||
                             m_componentIdArray.get(iter) == NOISE) {
                         if (m_componentIdArray.get(iter) == UNCLASSIFIED) {
-                            seeds.addFirst(iter);
+                            seeds.addLast(iter);
                         }
                         m_componentIdArray.set(iter, componentId);
                     }
@@ -543,6 +554,7 @@ public class ClusterGen {
 
         //  initialize the list of line segment clusters
         //  START ...
+        System.out.println("开始初始化聚类线段集...");
         for (int i = 0; i < m_currComponentId; i++) {
             m_lineSegmentClusters[i] = new LineSegmentCluster();
             m_lineSegmentClusters[i].avgDirectionVector = new CMDPoint(nDimensions);
@@ -553,11 +565,16 @@ public class ClusterGen {
             m_lineSegmentClusters[i].enabled = false;
         }
         //  ... END
+        System.out.println("完成初始化聚类线段集.");
 
         //  accumulate the direction vector of a line segment
+        System.out.println("开始计算线段的方向向量...");
         for (int i = 0; i < m_nTotalLineSegments; i++) {
             int componentId = m_componentIdArray.get(i);
             if (componentId >= 0) {
+                if(componentId == 0){
+                    System.out.println("test");
+                }
                 for (int j = 0; j < nDimensions; j++) {
                     double difference = m_lineSegmentPointArray.get(i).getM_coordinate(nDimensions + j)
                             - m_lineSegmentPointArray.get(i).getM_coordinate(j);
@@ -568,9 +585,11 @@ public class ClusterGen {
                 m_lineSegmentClusters[componentId].nLineSegments++;
             }
         }
+        System.out.println("完成计算线段的方向向量.");
 
         //  compute the average direction vector of a line segment cluster
         //  START ...
+        System.out.println("开始计算聚类线段集的平均方向向量...");
         double vectorLength1, vectorLength2, innerProduct;
         double cosTheta, sinTheta;
 
@@ -600,16 +619,20 @@ public class ClusterGen {
             clusterEntry.sinTheta = sinTheta;
 
         }
+        System.out.println("完成计算聚类线段集的平均方向向量.");
         //  ... END
 
         //  summarize the information about line segment clusters
         //  the structure for summarization is as follows
         //  [lineSegmentClusterId, nClusterPoints, clusterPointArray, nTrajectories, { trajectoryId, ... }]
+        System.out.println("开始汇总聚类线段集的信息...");
         for (int i = 0; i < m_nTotalLineSegments; i++) {
             if (m_componentIdArray.get(i) >= 0)        //  if the componentId < 0, it is a noise
                 RegisterAndUpdateLineSegmentCluster(m_componentIdArray.get(i), i);
         }
+        System.out.println("完成汇总聚类线段集的信息.");
 
+        System.out.println("开始计算表达线段...");
         Set<Integer> trajectories = new HashSet<Integer>();
         for (int i = 0; i < m_currComponentId; i++) {
             LineSegmentCluster clusterEntry = (m_lineSegmentClusters[i]);
@@ -619,21 +642,25 @@ public class ClusterGen {
                 clusterEntry.enabled = true;
                 // m_lineSegmentClusters[i].enabled = true;
                 //  DEBUG: count the number of trajectories that belong to clusters
-                for (int j = 0; j < (int) clusterEntry.trajectoryIdList.size(); j++) {
-                    trajectories.add(clusterEntry.trajectoryIdList.get(j));
-                }
+//                for (int j = 0; j < (int) clusterEntry.trajectoryIdList.size(); j++) {
+//                    trajectories.add(clusterEntry.trajectoryIdList.get(j));
+//                }
 
-                computeRepresentativeLines(clusterEntry);
+                computeRepresentativeLines2(clusterEntry);
                 // computeRepresentativeLines(m_lineSegmentClusters[i]);
             } else {
                 clusterEntry.candidatePointList.clear();
                 clusterEntry.clusterPointArray.clear();
                 clusterEntry.trajectoryIdList.clear();
             }
-
+            System.out.println(i);
+            if(i == 19){
+                System.out.println("slow");
+            }
         }
+        System.out.println("完成计算表达线段.");
         //  DEBUG: compute the ratio of trajectories that belong to clusters
-        m_document.m_clusterRatio = (double) trajectories.size() / (double) m_document.m_nTrajectories;
+//        m_document.m_clusterRatio = (double) trajectories.size() / (double) m_document.m_nTrajectories;
 
         return true;
     }
@@ -704,7 +731,97 @@ public class ClusterGen {
 
             // if the current density exceeds a given threshold
             if ((int) (lineSegments.size()) >= m_minLnsParam) {
-                if (Math.abs(candidatePoint.orderingValue - prevOrderingValue) > ((double) MIN_LINESEGMENT_LENGTH / 1.414)) {
+                if (Math.abs(candidatePoint.orderingValue - prevOrderingValue) > MIN_DIFFERENT_LENGTH) {
+                    computeAndRegisterClusterPoint(clusterEntry, candidatePoint.orderingValue, lineSegments);
+                    prevOrderingValue = candidatePoint.orderingValue;
+                    nClusterPoints++;
+                }
+            }
+
+            //  delete the line segment that is not connected to another line segment
+            for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
+                lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
+            }
+        }
+
+        if (nClusterPoints >= 2) {
+            clusterEntry.nClusterPoints = nClusterPoints;
+        } else {
+            //  there is no representative trend in this line segment cluster
+            clusterEntry.enabled = false;
+            clusterEntry.candidatePointList.clear();
+            clusterEntry.clusterPointArray.clear();
+            clusterEntry.trajectoryIdList.clear();
+        }
+        return;
+    }
+
+    private void computeRepresentativeLines2(LineSegmentCluster clusterEntry) {
+
+        Set<Integer> lineSegments = new LinkedHashSet<Integer>();
+        Set<Integer> insertionList = new LinkedHashSet<Integer>();
+        Set<Integer> deletionList = new LinkedHashSet<Integer>();
+
+        int iter = 0;
+        CandidateClusterPoint candidatePoint, nextCandidatePoint;
+        double prevOrderingValue = 0.0;
+
+        int nClusterPoints = 0;
+        lineSegments.clear();
+
+        //  sweep the line segments in a line segment cluster
+
+        while (iter != (clusterEntry.candidatePointList.size() - 1) && clusterEntry.candidatePointList.size() > 0) {
+            insertionList.clear();
+            deletionList.clear();
+
+            do {
+                candidatePoint = clusterEntry.candidatePointList.get(iter); //这里candidatePointList是已经排过序的
+                iter++;
+                //  check whether this line segment has begun or not
+                if (!lineSegments.contains(candidatePoint.lineSegmentId)) {
+                    // iter1 = lineSegments.find(candidatePoint.lineSegmentId);
+                    // if (iter1 == lineSegments.end())	{				//  if there is no matched element,
+                    insertionList.add(candidatePoint.lineSegmentId);        //  this line segment begins at this point
+                    lineSegments.add(candidatePoint.lineSegmentId);
+                } else {                        //  if there is a matched element,
+                    deletionList.add(candidatePoint.lineSegmentId);        //  this line segment ends at this point
+                }
+                //  check whether the next line segment begins or ends at the same point
+                if (iter != (clusterEntry.candidatePointList.size() - 1)) {
+                    nextCandidatePoint = clusterEntry.candidatePointList.get(iter);
+                } else {
+                    break;
+                }
+            } while (candidatePoint.orderingValue == nextCandidatePoint.orderingValue);
+
+            //  check if a line segment is connected to another line segment in the same trajectory
+            //  if so, delete one of the line segments to remove duplicates
+            // for (iter2 = insertionList.begin(); iter2 != insertionList.end(); iter2++)
+            for (int iter2 = 0; iter2 < insertionList.size(); iter2++) {
+                for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
+                    int a = (Integer) (insertionList.toArray()[iter2]);
+                    int b = (Integer) (deletionList.toArray()[iter3]);
+                    if (a == b) {
+                        lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
+                        deletionList.remove((Integer) (deletionList.toArray()[iter3]));
+                        break;
+                    }
+                }
+
+                for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
+                    if (m_idArray.get((Integer) (insertionList.toArray()[iter2])).trajectoryId
+                            == m_idArray.get((Integer) (deletionList.toArray()[iter3])).trajectoryId) {
+                        lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
+                        deletionList.remove((Integer) (deletionList.toArray()[iter3]));
+                        break;
+                    }
+                }
+            }
+
+            // if the current density exceeds a given threshold
+            if (lineSegments.size() >= m_minLnsParam) {
+                if (Math.abs(candidatePoint.orderingValue - prevOrderingValue) > MIN_DIFFERENT_LENGTH) {
                     computeAndRegisterClusterPoint(clusterEntry, candidatePoint.orderingValue, lineSegments);
                     prevOrderingValue = candidatePoint.orderingValue;
                     nClusterPoints++;
@@ -831,13 +948,13 @@ public class ClusterGen {
         newCandidatePoint1.startPointFlag = true;
         if (i == 0) {
             clusterEntry.candidatePointList.add(0, newCandidatePoint1);
-        } else if (i >= (int) clusterEntry.candidatePointList.size()) {
+        } else if (i >= clusterEntry.candidatePointList.size()) {
             clusterEntry.candidatePointList.add(newCandidatePoint1);
         } else {
             clusterEntry.candidatePointList.add(iter1, newCandidatePoint1);
         }
         int iter2 = 0;
-        for (j = 0; j < (int) clusterEntry.candidatePointList.size(); j++) {
+        for (j = 0; j < clusterEntry.candidatePointList.size(); j++) {
             existingCandidatePoint = clusterEntry.candidatePointList.get(iter2);
             if (existingCandidatePoint.orderingValue >= orderingValue2) {
                 break;
@@ -896,7 +1013,7 @@ public class ClusterGen {
         }
 	}
 
-    private void computeEPSNeighborhoodByRtree2(CMDPoint startPoint, CMDPoint endPoint, double eps, Deque<Integer> result) {
+    private void computeEPSNeighborhoodByRtree(CMDPoint startPoint, CMDPoint endPoint, double eps, Deque<Integer> result) {
         result.clear();
         Geometry searchRegion = get_bounding_box_of_line_segment(startPoint, endPoint, eps); //直接最大外接矩形
         List lst = m_tree.query(searchRegion.getEnvelopeInternal());

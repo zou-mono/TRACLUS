@@ -49,7 +49,7 @@ public class MainFrame2 extends JFrame {
         p.paint(g);
         g.dispose();
 
-        File f = new File("data/savePic.jpg");
+        File f = new File("res/savePic.jpg");
         if(!f.exists()) {
             f.createNewFile();
         }

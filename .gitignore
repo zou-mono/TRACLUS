@@ -61,3 +61,5 @@ fabric.properties
 
 *.exe
 *.bak
+
+.DS_Store

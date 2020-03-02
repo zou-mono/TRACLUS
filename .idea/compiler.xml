@@ -6,11 +6,11 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="TraClusAlgorithmWithGraph" />
+        <module name="Traclus" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="1.8">
-      <module name="TraClusAlgorithmWithGraph" target="1.8" />
+      <module name="Traclus" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

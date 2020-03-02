@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/TraClusAlgorithmWithGraph.iml" filepath="$PROJECT_DIR$/TraClusAlgorithmWithGraph.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Traclus.iml" filepath="$PROJECT_DIR$/Traclus.iml" />
     </modules>
   </component>
 </project>

@@ -119,9 +119,10 @@ public class TraClusterDoc {
 		m_nDimensions = nDimensions;
 
 		File srcfile = new File(srcfilepath);
+		FileDataStore store = null;
 		//创建目标shape文件对象
 		try {
-			FileDataStore store = FileDataStoreFinder.getDataStore(srcfile);
+			store= FileDataStoreFinder.getDataStore(srcfile);
 			SimpleFeatureSource featureSource = store.getFeatureSource();
 			iterator = featureSource.getFeatures().features();
 
@@ -154,7 +155,7 @@ public class TraClusterDoc {
 				trajectoryId++;
 			}
 			m_nTrajectories = trajectoryId;
-			iterator.close();
+//			iterator.close();
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -163,6 +164,7 @@ public class TraClusterDoc {
 		} finally {
 			try{
 				iterator.close();
+				store.dispose();
 			} catch (Exception e){
 				e.printStackTrace();
 			}
