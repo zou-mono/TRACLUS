@@ -27,7 +27,7 @@ public class ClusterGen {
     private CMDPoint m_projectionPoint; // = new CMDPoint( m_document.m_nDimensions);;
     double m_coefficient;
     private STRtree m_tree; //空间索引
-    private HashMap<Integer, Deque<Integer>> m_searchRegion = new HashMap<>(); //存储所有点的空间索引范围
+//    private HashMap<Integer, Deque<Integer>> m_searchRegion = new HashMap<>(); //存储所有点的空间索引范围
 
     private ArrayList<LineSegmentId> m_idArray = new ArrayList<ClusterGen.LineSegmentId>();
 
@@ -81,6 +81,8 @@ public class ClusterGen {
         CMDPoint avgDirectionVector;
         double cosTheta, sinTheta;
         ArrayList<CandidateClusterPoint> candidatePointList = new ArrayList<ClusterGen.CandidateClusterPoint>();
+        Queue<CandidateClusterPoint> candidatePointHeap= new PriorityQueue<>(
+                (e1, e2) -> (int) (e1.orderingValue - e2.orderingValue));
         int nClusterPoints;
         ArrayList<CMDPoint> clusterPointArray = new ArrayList<CMDPoint>();
         int nTrajectories;
@@ -636,7 +638,7 @@ public class ClusterGen {
         System.out.println("开始汇总聚类线段集的信息...");
         for (int i = 0; i < m_nTotalLineSegments; i++) {
             if (m_componentIdArray.get(i) >= 0)        //  if the componentId < 0, it is a noise
-                RegisterAndUpdateLineSegmentCluster(m_componentIdArray.get(i), i);
+                RegisterAndUpdateLineSegmentCluster2(m_componentIdArray.get(i), i);
         }
         System.out.println("完成汇总聚类线段集的信息.");
 
@@ -779,13 +781,13 @@ public class ClusterGen {
 
         //  sweep the line segments in a line segment cluster
 
-        while (iter != (clusterEntry.candidatePointList.size() - 1) && clusterEntry.candidatePointList.size() > 0) {
+        while (clusterEntry.candidatePointHeap.size() > 0) {
             insertionList.clear();
             deletionList.clear();
 
             do {
-                candidatePoint = clusterEntry.candidatePointList.get(iter); //这里candidatePointList是已经排过序的
-                iter++;
+                candidatePoint = clusterEntry.candidatePointHeap.poll(); //这里candidatePointHeap是已经排过序的最小堆
+
                 //  check whether this line segment has begun or not
                 if (!lineSegments.contains(candidatePoint.lineSegmentId)) {
                     // iter1 = lineSegments.find(candidatePoint.lineSegmentId);
@@ -796,8 +798,8 @@ public class ClusterGen {
                     deletionList.add(candidatePoint.lineSegmentId);        //  this line segment ends at this point
                 }
                 //  check whether the next line segment begins or ends at the same point
-                if (iter != (clusterEntry.candidatePointList.size() - 1)) {
-                    nextCandidatePoint = clusterEntry.candidatePointList.get(iter);
+                if (clusterEntry.candidatePointHeap.size() > 0) {
+                    nextCandidatePoint = clusterEntry.candidatePointHeap.peek();
                 } else {
                     break;
                 }
@@ -982,6 +984,48 @@ public class ClusterGen {
         } else {
             clusterEntry.candidatePointList.add(iter2, newCandidatePoint2);
         }
+        //  ... END
+
+        int trajectoryId = m_idArray.get(lineSegmentId).trajectoryId;
+
+        //  store the identifier of the trajectories that belong to this line segment cluster
+        if (!clusterEntry.trajectoryIdList.contains(trajectoryId)) {
+            clusterEntry.trajectoryIdList.add(trajectoryId);
+            clusterEntry.nTrajectories++;
+        }
+    }
+
+    private void RegisterAndUpdateLineSegmentCluster2(int componentId, int lineSegmentId) {
+        LineSegmentCluster clusterEntry = m_lineSegmentClusters[componentId];
+
+        //  the start and end values of the first dimension (e.g., the x value in the 2-dimension)
+        //  NOTE: this program code works only for the 2-dimensional data
+
+        CMDPoint aLineSegment = m_lineSegmentPointArray.get(lineSegmentId);
+        double orderingValue1 = GET_X_ROTATION(aLineSegment.getM_coordinate(0),
+                aLineSegment.getM_coordinate(1), clusterEntry.cosTheta, clusterEntry.sinTheta);
+        double orderingValue2 = GET_X_ROTATION(aLineSegment.getM_coordinate(2),
+                aLineSegment.getM_coordinate(3), clusterEntry.cosTheta, clusterEntry.sinTheta);
+
+        CandidateClusterPoint existingCandidatePoint, newCandidatePoint1, newCandidatePoint2;
+        int i, j;
+        //  sort the line segment points by the coordinate of the first dimension
+        //  use Priority Queue
+        //  START ...
+
+        newCandidatePoint1 = new CandidateClusterPoint(); //线段起始点
+        newCandidatePoint1.orderingValue = orderingValue1;
+        newCandidatePoint1.lineSegmentId = lineSegmentId;
+        newCandidatePoint1.startPointFlag = true;
+
+        clusterEntry.candidatePointHeap.add(newCandidatePoint1);
+
+        newCandidatePoint2 = new CandidateClusterPoint();
+        newCandidatePoint2.orderingValue = orderingValue2;
+        newCandidatePoint2.lineSegmentId = lineSegmentId;
+        newCandidatePoint2.startPointFlag = false;
+
+        clusterEntry.candidatePointHeap.add(newCandidatePoint2);
         //  ... END
 
         int trajectoryId = m_idArray.get(lineSegmentId).trajectoryId;

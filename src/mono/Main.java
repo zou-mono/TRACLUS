@@ -106,9 +106,9 @@ public class Main {
 //		tcd.onOpenDocument("data/deer_1995.tra");
 //		tcd.onClusterGenerate("testDeerResult.txt", 29, 8);// 25, 5~7
 
-//		tcd.loadTrajectoryFromShp(input_file);   //经过22和29节点的线.shp res_sp_s.shp
+		tcd.loadTrajectoryFromShp(input_file);   //经过22和29节点的线.shp res_sp_s.shp
 
-		tcd.onOpenDocument("data/deer_1995.tra");
+//		tcd.onOpenDocument("data/deer_1995.tra");
 		tcd.onClusterGenerate("res/testResult.txt", eps, minlns, minLnLen, mdlCost);// 25, 5~7
 
 		MainFrame2 mf = new MainFrame2(tcd.m_trajectoryList, tcd.m_lineSegmentPointArray, tcd.m_clusterList);

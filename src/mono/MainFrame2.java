@@ -95,11 +95,11 @@ class Canvas extends JPanel {
                 double endX = trajectoryAL.get(i).getM_pointArray().get(m+1).getM_coordinate(0);
                 double endY = trajectoryAL.get(i).getM_pointArray().get(m+1).getM_coordinate(1);
 
-                g.drawLine((int)startX, (int)startY, (int)endX, (int)endY);
-//                g.drawLine((int) (startX - 82154) * 1200 / 91202,
-//                        600 - (int) (startY - 8145) * 600 / 47087,
-//                        (int) (endX - 82154) * 1200 / 91202,
-//                        600 - (int) (endY - 8145) * 600 / 47087);
+//                g.drawLine((int)startX, (int)startY, (int)endX, (int)endY);
+                g.drawLine((int) (startX - 82154) * 1200 / 91202,
+                        600 - (int) (startY - 8145) * 600 / 47087,
+                        (int) (endX - 82154) * 1200 / 91202,
+                        600 - (int) (endY - 8145) * 600 / 47087);
 
 //                icount++;
             }
@@ -140,11 +140,11 @@ class Canvas extends JPanel {
                 double endX = clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().get(j + 1).getM_coordinate(0);
                 double endY = clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().get(j + 1).getM_coordinate(1);
 
-                g.drawLine((int)startX, (int)startY, (int)endX, (int)endY);
-//                g.drawLine((int) (startX - 82154) * 1200 / 91202,
-//                        600 - (int) (startY - 8145) * 600 / 47087,
-//                        (int) (endX - 82154) * 1200 / 91202,
-//                        600 - (int) (endY - 8145) * 600 / 47087);
+//                g.drawLine((int)startX, (int)startY, (int)endX, (int)endY);
+                g.drawLine((int) (startX - 82154) * 1200 / 91202,
+                        600 - (int) (startY - 8145) * 600 / 47087,
+                        (int) (endX - 82154) * 1200 / 91202,
+                        600 - (int) (endY - 8145) * 600 / 47087);
 //                icount++;
             }
         }
