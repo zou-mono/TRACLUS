@@ -87,7 +87,7 @@ class Canvas extends JPanel {
     private void drawTrajectory(ArrayList<Trajectory> trajectoryAL) {
         g.setColor(Color.gray);
         //java绘图左上角是原点
-        int icount = 0;
+//        int icount = 0;
         for (int i = 0; i < trajectoryAL.size();i++) {
             for (int m = 0; m < trajectoryAL.get(i).getM_pointArray().size() - 2 ;m++) {
                 double startX = trajectoryAL.get(i).getM_pointArray().get(m).getM_coordinate(0);
@@ -95,22 +95,22 @@ class Canvas extends JPanel {
                 double endX = trajectoryAL.get(i).getM_pointArray().get(m+1).getM_coordinate(0);
                 double endY = trajectoryAL.get(i).getM_pointArray().get(m+1).getM_coordinate(1);
 
-//                g.drawLine((int)startX, (int)startY, (int)endX, (int)endY);
-                g.drawLine((int) (startX - 82154) * 1200 / 91202,
-                        600 - (int) (startY - 8145) * 600 / 47087,
-                        (int) (endX - 82154) * 1200 / 91202,
-                        600 - (int) (endY - 8145) * 600 / 47087);
+                g.drawLine((int)startX, (int)startY, (int)endX, (int)endY);
+//                g.drawLine((int) (startX - 82154) * 1200 / 91202,
+//                        600 - (int) (startY - 8145) * 600 / 47087,
+//                        (int) (endX - 82154) * 1200 / 91202,
+//                        600 - (int) (endY - 8145) * 600 / 47087);
 
-                icount++;
+//                icount++;
             }
         }
-        System.out.println(icount);
+//        System.out.println(icount);
     }
 
     private void drawClusterComponentLineSegments(ArrayList<CMDPoint> lineSegmentPointArray) {
         g.setColor(Color.gray);
 
-        int icount = 0;
+//        int icount = 0;
 
         for (int i = 0; i < lineSegmentPointArray.size(); i++) {
             CMDPoint lineSegmentEntry = lineSegmentPointArray.get(i);
@@ -124,15 +124,15 @@ class Canvas extends JPanel {
 //                    600 - (int) (startY - 8145) * 600 / 47087,
 //                    (int) (endX - 82154) * 1200 / 91202,
 //                    600 - (int) (endY - 8145) * 600 / 47087);
-            icount++;
+//            icount++;
         }
-        System.out.println(icount);
+//        System.out.println(icount);
     }
 
     private void drawrTrajectory(ArrayList<Cluster> clusterRepresentativeTrajectoryAL) {
         g.setColor(Color.RED);
 
-        int icount = 0;
+//        int icount = 0;
         for (int i = 0; i < clusterRepresentativeTrajectoryAL.size();i++) {
             for (int j = 0; j < clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().size() - 2; j++) {
                 double startX = clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().get(j).getM_coordinate(0);
@@ -140,15 +140,15 @@ class Canvas extends JPanel {
                 double endX = clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().get(j + 1).getM_coordinate(0);
                 double endY = clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().get(j + 1).getM_coordinate(1);
 
-//                g.drawLine((int)startX, (int)startY, (int)endX, (int)endY);
-                g.drawLine((int) (startX - 82154) * 1200 / 91202,
-                        600 - (int) (startY - 8145) * 600 / 47087,
-                        (int) (endX - 82154) * 1200 / 91202,
-                        600 - (int) (endY - 8145) * 600 / 47087);
-                icount++;
+                g.drawLine((int)startX, (int)startY, (int)endX, (int)endY);
+//                g.drawLine((int) (startX - 82154) * 1200 / 91202,
+//                        600 - (int) (startY - 8145) * 600 / 47087,
+//                        (int) (endX - 82154) * 1200 / 91202,
+//                        600 - (int) (endY - 8145) * 600 / 47087);
+//                icount++;
             }
         }
-        System.out.println(icount);
+//        System.out.println(icount);
     }
 }
 

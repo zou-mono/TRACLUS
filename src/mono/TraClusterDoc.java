@@ -1,5 +1,6 @@
 package mono;
 
+import com.sun.media.jai.mlib.MlibDCTRIF;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
 import org.geotools.data.simple.SimpleFeatureIterator;
@@ -171,11 +172,13 @@ public class TraClusterDoc {
 		}
 	}
 
-	boolean onClusterGenerate(String clusterFileName, double epsParam, int minLnsParam) {
+	boolean onClusterGenerate(String clusterFileName, double epsParam, int minLnsParam, double minLnLen, int mdlcost) {
 //////////////////////////////////////////////////still to be written
 		
 		ClusterGen generator = new ClusterGen(this);
-		
+		generator.setMinLinesegmentLength(minLnLen);
+		generator.setMdlCostAdwantage(mdlcost);
+
 		if(m_nTrajectories == 0) {
 			System.out.println("Load a trajectory data set first");
 		}

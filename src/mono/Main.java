@@ -12,6 +12,10 @@ public class Main {
 
 	public static void main(String[] args) {
 		String input_file="";
+		double eps = 0.0;
+		int minlns = 0;
+		double minLnLen = 0.0;
+		int mdlCost = 0;
 
 //		if (args.length == 4) {
 //			TraClusterDoc tcd = new TraClusterDoc();
@@ -45,12 +49,45 @@ public class Main {
 				longOpt("input").required().
 				hasArg(true).type(String.class).build());
 
+		OPTIONS.addOption(Option.builder("r").
+				argName("eps").
+				longOpt("eps").required().
+				hasArg(true).type(double.class).build());
+
+		OPTIONS.addOption(Option.builder("n").
+				argName("minLns").
+				longOpt("minLns").required().
+				hasArg(true).type(int.class).build());
+
+		OPTIONS.addOption(Option.builder("l").
+				argName("minLnLen").
+				longOpt("minLnLen").
+				hasArg(true).type(double.class).build());
+
+		OPTIONS.addOption(Option.builder("m").
+				argName("mdlcost").
+				longOpt("mdlcost").
+				hasArg(true).type(int.class).build());
+
 		try {
 			cl = commandLineParser.parse(OPTIONS, args);
 
 			if(cl.hasOption("i")){
 				input_file = cl.getOptionValue("i");
 			}
+			if(cl.hasOption("r")){
+				eps = Double.valueOf(cl.getOptionValue("r"));
+			}
+			if(cl.hasOption("n")){
+				minlns = Integer.valueOf(cl.getOptionValue("n"));
+			}
+			if(cl.hasOption("l")){
+				minLnLen = Integer.valueOf(cl.getOptionValue("l"));
+			}
+			if(cl.hasOption("m")){
+				mdlCost = Integer.valueOf(cl.getOptionValue("m"));
+			}
+
 		} catch (ParseException e) {
 			System.out.println(e.getMessage() + "\n" + getHelpString());
 			System.exit(0);
@@ -69,8 +106,10 @@ public class Main {
 //		tcd.onOpenDocument("data/deer_1995.tra");
 //		tcd.onClusterGenerate("testDeerResult.txt", 29, 8);// 25, 5~7
 
-		tcd.loadTrajectoryFromShp(input_file);   //经过22和29节点的线.shp res_sp_s.shp
-		tcd.onClusterGenerate("res/testDeerResult.txt", 200, 5);// 25, 5~7
+//		tcd.loadTrajectoryFromShp(input_file);   //经过22和29节点的线.shp res_sp_s.shp
+
+		tcd.onOpenDocument("data/deer_1995.tra");
+		tcd.onClusterGenerate("res/testResult.txt", eps, minlns, minLnLen, mdlCost);// 25, 5~7
 
 		MainFrame2 mf = new MainFrame2(tcd.m_trajectoryList, tcd.m_lineSegmentPointArray, tcd.m_clusterList);
 

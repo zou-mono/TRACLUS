@@ -41,11 +41,19 @@ public class ClusterGen {
     public static final int UNCLASSIFIED = -2;
     public static final int NOISE = -1;
 
-    private static final double MIN_LINESEGMENT_LENGTH = 100; //100 500
-    private static final double MIN_DIFFERENT_LENGTH = MIN_LINESEGMENT_LENGTH / 1.414;
+    private double MIN_LINESEGMENT_LENGTH = 100; //100 500
+    private final double MIN_DIFFERENT_LENGTH = MIN_LINESEGMENT_LENGTH / 1.414;
 
-    private static final int MDL_COST_ADWANTAGE = 25; //25 50
+    public void setMdlCostAdwantage(int mdlCostAdwantage) {
+        MDL_COST_ADWANTAGE = mdlCostAdwantage;
+    }
+
+    private int MDL_COST_ADWANTAGE = 25; //25 50
     private static final int INT_MAX = Integer.MAX_VALUE;
+
+    public void setMinLinesegmentLength(double minLinesegmentLength) {
+        MIN_LINESEGMENT_LENGTH = minLinesegmentLength;
+    }
 
     // used for InsertClusterPoint() and ReplaceClusterPoint()
     enum PointLocation {
@@ -572,9 +580,9 @@ public class ClusterGen {
         for (int i = 0; i < m_nTotalLineSegments; i++) {
             int componentId = m_componentIdArray.get(i);
             if (componentId >= 0) {
-                if(componentId == 0){
-                    System.out.println("test");
-                }
+//                if(componentId == 0){
+//                    System.out.println("test");
+//                }
                 for (int j = 0; j < nDimensions; j++) {
                     double difference = m_lineSegmentPointArray.get(i).getM_coordinate(nDimensions + j)
                             - m_lineSegmentPointArray.get(i).getM_coordinate(j);
@@ -654,9 +662,9 @@ public class ClusterGen {
                 clusterEntry.trajectoryIdList.clear();
             }
             System.out.println(i);
-            if(i == 19){
-                System.out.println("slow");
-            }
+//            if(i == 19){
+//                System.out.println("slow");
+//            }
         }
         System.out.println("完成计算表达线段.");
         //  DEBUG: compute the ratio of trajectories that belong to clusters

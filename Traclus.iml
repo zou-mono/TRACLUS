@@ -9,6 +9,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Maven: commons-cli:commons-cli:1.4" level="project" />
     <orderEntry type="library" name="Maven: org.geotools:gt-shapefile:20-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.geotools:gt-data:20-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.geotools:gt-main:20-SNAPSHOT" level="project" />
