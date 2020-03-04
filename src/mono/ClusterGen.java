@@ -81,8 +81,8 @@ public class ClusterGen {
         CMDPoint avgDirectionVector;
         double cosTheta, sinTheta;
         ArrayList<CandidateClusterPoint> candidatePointList = new ArrayList<ClusterGen.CandidateClusterPoint>();
-        Queue<CandidateClusterPoint> candidatePointHeap= new PriorityQueue<>(
-                (e1, e2) -> (int) (e1.orderingValue - e2.orderingValue));
+//        Queue<CandidateClusterPoint> candidatePointHeap= new PriorityQueue<>(
+//                (e1, e2) -> (int) (e1.orderingValue - e2.orderingValue));
         int nClusterPoints;
         ArrayList<CMDPoint> clusterPointArray = new ArrayList<CMDPoint>();
         int nTrajectories;
@@ -678,9 +678,9 @@ public class ClusterGen {
 
     private void computeRepresentativeLines(LineSegmentCluster clusterEntry) {
 
-        Set<Integer> lineSegments = new HashSet<Integer>();
-        Set<Integer> insertionList = new HashSet<Integer>();
-        Set<Integer> deletionList = new HashSet<Integer>();
+        Set<Integer> lineSegments = new LinkedHashSet<Integer>();
+        Set<Integer> insertionList = new LinkedHashSet<Integer>();
+        Set<Integer> deletionList = new LinkedHashSet<Integer>();
 
         int iter = 0;
         CandidateClusterPoint candidatePoint, nextCandidatePoint;
@@ -780,14 +780,15 @@ public class ClusterGen {
         lineSegments.clear();
 
         //  sweep the line segments in a line segment cluster
+        clusterEntry.candidatePointList.sort((o1, o2) -> (int)(o1.orderingValue - o2.orderingValue));
 
-        while (clusterEntry.candidatePointHeap.size() > 0) {
+        while (iter != (clusterEntry.candidatePointList.size() - 1) && clusterEntry.candidatePointList.size() > 0) {
             insertionList.clear();
             deletionList.clear();
 
             do {
-                candidatePoint = clusterEntry.candidatePointHeap.poll(); //这里candidatePointHeap是已经排过序的最小堆
-
+                candidatePoint = clusterEntry.candidatePointList.get(iter);
+                iter++;
                 //  check whether this line segment has begun or not
                 if (!lineSegments.contains(candidatePoint.lineSegmentId)) {
                     // iter1 = lineSegments.find(candidatePoint.lineSegmentId);
@@ -798,8 +799,8 @@ public class ClusterGen {
                     deletionList.add(candidatePoint.lineSegmentId);        //  this line segment ends at this point
                 }
                 //  check whether the next line segment begins or ends at the same point
-                if (clusterEntry.candidatePointHeap.size() > 0) {
-                    nextCandidatePoint = clusterEntry.candidatePointHeap.peek();
+                if (iter != (clusterEntry.candidatePointList.size() - 1)) {
+                    nextCandidatePoint = clusterEntry.candidatePointList.get(iter);
                 } else {
                     break;
                 }
@@ -1009,23 +1010,26 @@ public class ClusterGen {
 
         CandidateClusterPoint existingCandidatePoint, newCandidatePoint1, newCandidatePoint2;
         int i, j;
-        //  sort the line segment points by the coordinate of the first dimension
-        //  use Priority Queue
+        //  插入的时候不排序，后面用的时候再排序
         //  START ...
+
+        if(componentId == 0){
+            System.out.println("0");
+        }
 
         newCandidatePoint1 = new CandidateClusterPoint(); //线段起始点
         newCandidatePoint1.orderingValue = orderingValue1;
         newCandidatePoint1.lineSegmentId = lineSegmentId;
         newCandidatePoint1.startPointFlag = true;
 
-        clusterEntry.candidatePointHeap.add(newCandidatePoint1);
+        clusterEntry.candidatePointList.add(newCandidatePoint1);
 
         newCandidatePoint2 = new CandidateClusterPoint();
         newCandidatePoint2.orderingValue = orderingValue2;
         newCandidatePoint2.lineSegmentId = lineSegmentId;
         newCandidatePoint2.startPointFlag = false;
 
-        clusterEntry.candidatePointHeap.add(newCandidatePoint2);
+        clusterEntry.candidatePointList.add(newCandidatePoint2);
         //  ... END
 
         int trajectoryId = m_idArray.get(lineSegmentId).trajectoryId;
