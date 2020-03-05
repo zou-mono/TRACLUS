@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Configuration>
+    <Appenders>
+        <RollingFile name="RollingFile" fileName="logs/app.log" append="false"
+                     filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz">
+            <PatternLayout>
+                <Pattern>
+                    %date{yyyy-MM-dd HH:mm:ss} %level{length=7} [%thread][%c{10}] - %message%n
+                </Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="250 MB"/>
+            </Policies>
+        </RollingFile>
+        <Console name="MyConsole" target="SYSTEM_OUT">
+            <PatternLayout>
+                <Pattern>
+                    %highlight{%date{yyyy-MM-dd HH:mm:ss} %level{length=7} [%thread][%c{10}] - %message%n}
+                </Pattern>
+            </PatternLayout>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="mono" level="info" additivity="false">
+            <AppenderRef ref="RollingFile"/>
+            <AppenderRef ref="MyConsole"/>
+        </Logger>
+        <!--<Logger name="com.mono" level="info" additivity="false">-->
+            <!--<AppenderRef ref="MyConsole"/>-->
+        <!--</Logger>-->
+    </Loggers>
+</Configuration>
+

@@ -3,10 +3,13 @@ package mono;
 import java.util.*;
 
 import mono.TraClusterDoc.Parameter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.index.strtree.STRtree;
 
 public class ClusterGen {
+    private static final Logger logger = LogManager.getLogger(ClusterGen.class.getName());
 
     public TraClusterDoc m_document;
 
@@ -117,14 +120,14 @@ public class ClusterGen {
     public boolean constructCluster() {
         // this step consists of two sub-steps
         // notice that the result of the previous sub-step is used in the following sub-steps
-        System.out.println("开始构建新的轨迹...\n");
+        logger.info("开始构建新的轨迹...\n");
         if (!constructLineSegmentCluster()) {
             return false;
         }
         if (!storeLineSegmentCluster()) {
             return false;
         }
-        System.out.println("新轨迹构建完成.\n");
+        logger.info("新轨迹构建完成.\n");
         return true;
     }
 
@@ -161,7 +164,7 @@ public class ClusterGen {
                 m_currComponentId++;
             }
         }
-        System.out.println("聚类后的类别数目是:"+m_currComponentId);
+        logger.info("聚类后的类别数目是:"+m_currComponentId);
         return true;
     }
 
@@ -225,7 +228,7 @@ public class ClusterGen {
             }
         }
 
-        System.out.println("分段后的线段数目是:" + m_nTotalLineSegments);
+        logger.info("分段后的线段数目是:" + m_nTotalLineSegments);
         m_tree.build();
 
 //        long startTime=System.currentTimeMillis();
@@ -238,7 +241,7 @@ public class ClusterGen {
 //        }
 //        long endTime=System.currentTimeMillis();
 //        System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
-        System.out.println("R树索引创建成功！");
+        logger.info("R树索引创建成功！");
 
         return true;
     }
@@ -524,7 +527,7 @@ public class ClusterGen {
         computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seeds); //computeEPSNeighborhoodByRtree computeEPSNeighborhood
 //        seeds = m_searchRegion.get(index);
 
-        if ((int) seeds.size() < minDensity) { //  not a core line segment
+        if (seeds.size() < minDensity) { //  not a core line segment
             m_componentIdArray.set(index, NOISE);
             return false;
         }
@@ -564,7 +567,7 @@ public class ClusterGen {
 
         //  initialize the list of line segment clusters
         //  START ...
-        System.out.println("开始初始化聚类线段集...");
+        logger.info("开始初始化聚类线段集...");
         for (int i = 0; i < m_currComponentId; i++) {
             m_lineSegmentClusters[i] = new LineSegmentCluster();
             m_lineSegmentClusters[i].avgDirectionVector = new CMDPoint(nDimensions);
@@ -575,10 +578,10 @@ public class ClusterGen {
             m_lineSegmentClusters[i].enabled = false;
         }
         //  ... END
-        System.out.println("完成初始化聚类线段集.");
+        logger.info("完成初始化聚类线段集.");
 
         //  accumulate the direction vector of a line segment
-        System.out.println("开始计算线段的方向向量...");
+        logger.info("开始计算线段的方向向量...");
         for (int i = 0; i < m_nTotalLineSegments; i++) {
             int componentId = m_componentIdArray.get(i);
             if (componentId >= 0) {
@@ -595,11 +598,11 @@ public class ClusterGen {
                 m_lineSegmentClusters[componentId].nLineSegments++;
             }
         }
-        System.out.println("完成计算线段的方向向量.");
+        logger.info("完成计算线段的方向向量.");
 
         //  compute the average direction vector of a line segment cluster
         //  START ...
-        System.out.println("开始计算聚类线段集的平均方向向量...");
+        logger.info("开始计算聚类线段集的平均方向向量...");
         double vectorLength1, vectorLength2, innerProduct;
         double cosTheta, sinTheta;
 
@@ -629,20 +632,20 @@ public class ClusterGen {
             clusterEntry.sinTheta = sinTheta;
 
         }
-        System.out.println("完成计算聚类线段集的平均方向向量.");
+        logger.info("完成计算聚类线段集的平均方向向量.");
         //  ... END
 
         //  summarize the information about line segment clusters
         //  the structure for summarization is as follows
         //  [lineSegmentClusterId, nClusterPoints, clusterPointArray, nTrajectories, { trajectoryId, ... }]
-        System.out.println("开始汇总聚类线段集的信息...");
+        logger.info("开始汇总聚类线段集的信息...");
         for (int i = 0; i < m_nTotalLineSegments; i++) {
             if (m_componentIdArray.get(i) >= 0)        //  if the componentId < 0, it is a noise
                 RegisterAndUpdateLineSegmentCluster2(m_componentIdArray.get(i), i);
         }
-        System.out.println("完成汇总聚类线段集的信息.");
+        logger.info("完成汇总聚类线段集的信息.");
 
-        System.out.println("开始计算表达线段...");
+        logger.info("开始计算表达线段...");
         Set<Integer> trajectories = new HashSet<Integer>();
         for (int i = 0; i < m_currComponentId; i++) {
             LineSegmentCluster clusterEntry = (m_lineSegmentClusters[i]);
@@ -668,7 +671,7 @@ public class ClusterGen {
 //                System.out.println("slow");
 //            }
         }
-        System.out.println("完成计算表达线段.");
+        logger.info("完成计算表达线段.");
         //  DEBUG: compute the ratio of trajectories that belong to clusters
 //        m_document.m_clusterRatio = (double) trajectories.size() / (double) m_document.m_nTrajectories;
 
@@ -1013,9 +1016,9 @@ public class ClusterGen {
         //  插入的时候不排序，后面用的时候再排序
         //  START ...
 
-        if(componentId == 0){
-            System.out.println("0");
-        }
+//        if(componentId == 0){
+//            System.out.println("0");
+//        }
 
         newCandidatePoint1 = new CandidateClusterPoint(); //线段起始点
         newCandidatePoint1.orderingValue = orderingValue1;

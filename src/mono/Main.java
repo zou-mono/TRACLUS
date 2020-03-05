@@ -1,11 +1,15 @@
 package mono;
 
 import org.apache.commons.cli.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 
 public class Main {
+	private static final Logger logger = LogManager.getLogger(Main.class.getName());
+
 	private static CommandLine cl;
 	private static String HELP_STRING = null;
 	private static Options OPTIONS = new Options();
@@ -119,7 +123,7 @@ public class Main {
 //			System.out.println("Based on the algorithm, the suggested parameters are:\n" + "eps:" + p.epsParam + "  minLns:" + p.minLnsParam);
 //		}
 		long endTime=System.currentTimeMillis();
-		System.out.println("over!" + (endTime-startTime) / 1000);
+		logger.info("over!" + (endTime-startTime) / 1000);
 	}
 
 	private static String getHelpString() {

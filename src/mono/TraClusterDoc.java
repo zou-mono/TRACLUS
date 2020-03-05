@@ -1,6 +1,8 @@
 package mono;
 
 import com.sun.media.jai.mlib.MlibDCTRIF;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
 import org.geotools.data.simple.SimpleFeatureIterator;
@@ -15,7 +17,8 @@ import java.util.Scanner;
 import java.util.Locale;
 
 public class TraClusterDoc {
-	
+	private static final Logger logger = LogManager.getLogger(TraClusterDoc.class.getName());
+
 	public int m_nDimensions;
 	public int m_nTrajectories;
 	public int m_nClusters;
@@ -91,7 +94,7 @@ public class TraClusterDoc {
 			}					
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			System.out.println("Unable to open input file");
+			logger.error("Unable to open input file");
 		} catch (NumberFormatException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -159,6 +162,7 @@ public class TraClusterDoc {
 //			iterator.close();
 
 		} catch (IOException e) {
+			logger.error("打开文件错误.");
 			e.printStackTrace();
 		} catch(Exception e){
 			e.printStackTrace();
@@ -180,27 +184,27 @@ public class TraClusterDoc {
 		generator.setMdlCostAdwantage(mdlcost);
 
 		if(m_nTrajectories == 0) {
-			System.out.println("Load a trajectory data set first");
+			logger.error("Load a trajectory data set first");
 		}
 		
 		// FIRST STEP: Trajectory Partitioning
 		if (!generator.partitionTrajectory(epsParam))
 		{
-			System.out.println("Unable to partition a trajectory\n");
+			logger.error("Unable to partition a trajectory\n");
 			return false;
 		}
 
 		// SECOND STEP: Density-based Clustering
 		if (!generator.performDBSCAN(epsParam, minLnsParam))
 		{
-			System.out.println("Unable to perform the DBSCAN algorithm\n");
+			logger.error("Unable to perform the DBSCAN algorithm\n");
 			return false;
 		}
 
 		// THIRD STEP: Cluster Construction
 		if (!generator.constructCluster())
 		{
-			System.out.println( "Unable to construct a cluster\n");
+			logger.error( "Unable to construct a cluster\n");
 			return false;
 		}
 
@@ -256,11 +260,11 @@ public class TraClusterDoc {
 		Parameter p = new Parameter();
 		ClusterGen generator = new ClusterGen(this);
 		if (!generator.partitionTrajectory(eps)) {
-			System.out.println("Unable to partition a trajectory\n");
+			logger.error("Unable to partition a trajectory\n");
 			return null;
 		}
 		if (!generator.estimateParameterValue(p)) {
-			System.out.println("Unable to calculate the entropy\n");
+			logger.error("Unable to calculate the entropy\n");
 			return null;
 		}
 		return p;
