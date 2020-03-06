@@ -79,12 +79,12 @@
     </dependencies>
     <build>
         <resources>
-<!--            <resource>-->
-<!--                <directory>src</directory>-->
+            <resource>
+                <directory>src</directory>
 <!--                <includes>-->
 <!--                    <include>**/*.properties</include>-->
 <!--                </includes>-->
-<!--            </resource>-->
+            </resource>
             <resource>
                 <directory>src/resources</directory>
             </resource>
@@ -137,7 +137,7 @@
                             <jar>
                                 ${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar
                             </jar>
-                            <outfile>${project.build.directory}/data-preprocessing.exe</outfile>
+                            <outfile>${project.build.directory}/traclus.exe</outfile>
                             <downloadUrl>http://java.com/download</downloadUrl>
                             <classPath>
                                 <mainClass>mono.Main</mainClass>

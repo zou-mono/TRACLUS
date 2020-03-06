@@ -1,11 +1,15 @@
 package mono;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 import mono.TraClusterDoc.Parameter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.locationtech.jts.geom.*;
+import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.index.strtree.STRtree;
 
 public class ClusterGen {
@@ -160,6 +164,8 @@ public class ClusterGen {
         }
 
         for (int i = 0; i < m_nTotalLineSegments; i++) {
+            if (i % 100 == 0)
+                logger.debug("processed(cluster) " + i + "...");
             if (m_componentIdArray.get(i) == UNCLASSIFIED && expandDenseComponent2(i, m_currComponentId, eps, minLns)) {
                 m_currComponentId++;
             }
@@ -511,8 +517,6 @@ public class ClusterGen {
     }
 
     private boolean expandDenseComponent2(int index, int componentId, double eps, int minDensity) {
-//        if (index % 100 == 0)
-        System.out.println("processed(cluster) " + index + "...");
 
 //        if(index==43){
 //            System.out.println("slow");
@@ -1077,17 +1081,32 @@ public class ClusterGen {
         Geometry searchRegion = get_bounding_box_of_line_segment(startPoint, endPoint, eps); //直接最大外接矩形
         List lst = m_tree.query(searchRegion.getEnvelopeInternal());
 
+        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
+
         for (int i = 0; i < lst.size(); i++) {
             int segmentID = (int)lst.get(i);
-//            System.out.println(segmentID);
+//            if(segmentID == 0){
+//                System.out.println("0");
+//            }
             extractStartAndEndPoints(segmentID, m_startPoint2, m_endPoint2);
             double distance = computeDistanceBetweenTwoLineSegments(startPoint, endPoint, m_startPoint2, m_endPoint2);
-//            double distance = measureDistanceFromPointToLineSegment(m_startPoint2, m_endPoint2, startPoint);
 
             if (distance <= eps)
                 result.addFirst(segmentID);
-//            result.add(segmentID);
+
+//            Coordinate[] coords  =
+//                    new Coordinate[] {new Coordinate(m_startPoint2.getM_coordinate(0),m_startPoint2.getM_coordinate(1)),
+//                            new Coordinate(m_endPoint2.getM_coordinate(0),m_endPoint2.getM_coordinate(1))};
+//
+//            LineString line = geometryFactory.createLineString(coords);
+//            if(line.intersects(searchRegion)) {
+//                double distance = computeDistanceBetweenTwoLineSegments(startPoint, endPoint, m_startPoint2, m_endPoint2);
+//
+//                if (distance <= eps)
+//                    result.addFirst(segmentID);
+//            }
         }
+//        logger.debug(result.size());
     }
 
 	private Geometry get_bounding_box_of_line_segment(CMDPoint startPoint, CMDPoint endPoint, double radius) {
@@ -1104,8 +1123,8 @@ public class ClusterGen {
 		coords[4] = new Coordinate(left, top);
 		GeometryFactory factory = new GeometryFactory();
 //        LinearRing ring= new LinearRing(new CoordinateArraySequence(coors),new GeometryFactory());
-		LinearRing ring = factory.createLinearRing(coords);
-		return ring;
+        Polygon polygon = factory.createPolygon(coords);
+		return polygon;
 	}
 
     /**
