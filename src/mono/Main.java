@@ -118,7 +118,7 @@ public class Main {
 		MainFrame2 mf = new MainFrame2(tcd.m_trajectoryList, tcd.m_lineSegmentPointArray, tcd.m_clusterList);
 
 
-//		Parameter p = tcd.onEstimateParameter();
+//		TraClusterDoc.Parameter p = tcd.onEstimateParameter();
 //		if (p != null) {
 //			System.out.println("Based on the algorithm, the suggested parameters are:\n" + "eps:" + p.epsParam + "  minLns:" + p.minLnsParam);
 //		}

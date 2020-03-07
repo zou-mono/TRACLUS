@@ -188,25 +188,30 @@ public class TraClusterDoc {
 		}
 		
 		// FIRST STEP: Trajectory Partitioning
-		if (!generator.partitionTrajectory(epsParam))
-		{
+		logger.info("开始分段...");
+		if (!generator.partitionTrajectory()) {
 			logger.error("Unable to partition a trajectory\n");
 			return false;
 		}
+		logger.info("分段完成.");
 
 		// SECOND STEP: Density-based Clustering
+		logger.info("开始聚类...");
 		if (!generator.performDBSCAN(epsParam, minLnsParam))
 		{
 			logger.error("Unable to perform the DBSCAN algorithm\n");
 			return false;
 		}
+		logger.info("聚类完成.");
 
+		logger.info("开始生成轨迹结果...");
 		// THIRD STEP: Cluster Construction
 		if (!generator.constructCluster())
 		{
 			logger.error( "Unable to construct a cluster\n");
 			return false;
 		}
+		logger.info("轨迹结果生成完成.");
 
 		m_lineSegmentPointArray = generator.get_lineSegmentPointArray();
 
@@ -256,10 +261,10 @@ public class TraClusterDoc {
 		return true;		
 	}
 	
-	Parameter onEstimateParameter(double eps) {
+	Parameter onEstimateParameter() {
 		Parameter p = new Parameter();
 		ClusterGen generator = new ClusterGen(this);
-		if (!generator.partitionTrajectory(eps)) {
+		if (!generator.partitionTrajectory()) {
 			logger.error("Unable to partition a trajectory\n");
 			return null;
 		}

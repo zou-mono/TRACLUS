@@ -135,7 +135,7 @@ public class ClusterGen {
         return true;
     }
 
-    public boolean partitionTrajectory(double eps) {
+    public boolean partitionTrajectory() {
 
         for (int i = 0; i < m_document.m_trajectoryList.size(); i++) {
             Trajectory pTrajectory = m_document.m_trajectoryList.get(i);
@@ -144,7 +144,7 @@ public class ClusterGen {
 
             m_document.m_trajectoryList.set(i, pTrajectory);
         }
-        if (!storeClusterComponentIntoIndex(eps)) {
+        if (!storeClusterComponentIntoIndex()) {
             return false;
         }
         return true;
@@ -175,7 +175,7 @@ public class ClusterGen {
     }
 
 
-    private boolean storeClusterComponentIntoIndex(double eps) {
+    private boolean storeClusterComponentIntoIndex() {
 
         int nDimensions = m_document.m_nDimensions;
         CMDPoint startPoint;
@@ -787,7 +787,12 @@ public class ClusterGen {
         lineSegments.clear();
 
         //  sweep the line segments in a line segment cluster
-        clusterEntry.candidatePointList.sort((o1, o2) -> (int)(o1.orderingValue - o2.orderingValue));
+        clusterEntry.candidatePointList.sort((o1, o2) -> {
+            if (Math.abs(o1.orderingValue - o2.orderingValue) < .00001) //排序时候避免浮点型数导致的Bug
+                return 0;
+            else return Double.compare(o1.orderingValue, o2.orderingValue);
+        });
+//        clusterEntry.candidatePointList.sort((o1,o2)->(int)(o1.orderingValue-o2.orderingValue));
 
         while (iter != (clusterEntry.candidatePointList.size() - 1) && clusterEntry.candidatePointList.size() > 0) {
             insertionList.clear();
@@ -1281,13 +1286,13 @@ public class ClusterGen {
 
         int[] EpsNeighborhoodSize = new int[m_nTotalLineSegments];
 
-        for (eps = 20.0; eps <= 40.0; eps += 1.0) {
+        for (eps = 50; eps <= 1000; eps += 1.0) {
             entropy = 0.0;
             totalSize = 0;
             seeds.clear();
             for (int i = 0; i < m_nTotalLineSegments; i++) {
                 extractStartAndEndPoints(i, m_startPoint1, m_endPoint1);
-                computeEPSNeighborhood(m_startPoint1, m_endPoint1, eps, seeds);
+                computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seeds);
                 EpsNeighborhoodSize[i] = (int) seeds.size();
                 totalSize += (int) seeds.size();
                 seeds.clear();
