@@ -21,6 +21,7 @@ public class ClusterGen {
     private int m_minLnsParam;
     private int m_nTotalLineSegments; //存储分段后的线段数量
     private int m_currComponentId;
+
     // the number of dense components discovered until now
     private ArrayList<Integer> m_componentIdArray = new ArrayList<Integer>();
 
@@ -41,6 +42,7 @@ public class ClusterGen {
     public ArrayList<CMDPoint> get_lineSegmentPointArray() {
         return m_lineSegmentPointArray;
     }
+    public ArrayList<Integer> getM_componentIdArray() { return m_componentIdArray; }
 
     private ArrayList<CMDPoint> m_lineSegmentPointArray = new ArrayList<CMDPoint>();
 
@@ -213,20 +215,6 @@ public class ClusterGen {
 
                 m_idArray.add(id);
                 m_lineSegmentPointArray.add(lineSegmentPoint);
-
-//                if(cmdpt.size() ==0) cmdpt.add(lineSegmentPoint);
-//                for(int k = 0; k < cmdpt.size(); k++){
-//                    if(cmdpt.get(k).getM_coordinate(0) != startPoint.getM_coordinate(0) ||
-//                            cmdpt.get(k).getM_coordinate(1) != startPoint.getM_coordinate(1) ||
-//                            cmdpt.get(k).getM_coordinate(2) != endPoint.getM_coordinate(0) ||
-//                            cmdpt.get(k).getM_coordinate(3) != endPoint.getM_coordinate(1)){
-//                        cmdpt.add(lineSegmentPoint);
-//                        break;
-//                    }else{
-//                        System.out.println(m_nTotalLineSegments);
-//                        break;
-//                    }
-//                }
 
                 insertRtree(lineSegmentPoint, m_nTotalLineSegments); //加入索引树
 

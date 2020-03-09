@@ -10,6 +10,7 @@ import org.geotools.data.simple.SimpleFeatureSource;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class TraClusterDoc {
 	public int m_maxNPoints;
 	public ArrayList<Trajectory> m_trajectoryList;
 	public ArrayList<CMDPoint> m_lineSegmentPointArray;
+	public ArrayList<Integer> m_componentIdArray;
 	public ArrayList<Cluster> m_clusterList;
 
 	public TraClusterDoc() {
@@ -214,6 +216,7 @@ public class TraClusterDoc {
 		logger.info("轨迹结果生成完成.");
 
 		m_lineSegmentPointArray = generator.get_lineSegmentPointArray();
+		m_componentIdArray = generator.getM_componentIdArray();
 
 		for (int i = 0; i <m_clusterList.size(); i++) {
 			//m_clusterList.
