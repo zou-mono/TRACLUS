@@ -115,7 +115,8 @@ public class Main {
 //		tcd.onOpenDocument("data/deer_1995.tra");
 		tcd.onClusterGenerate("res/testResult.txt", eps, minlns, minLnLen, mdlCost);// 25, 5~7
 
-		MainFrame mf = new MainFrame(tcd.m_trajectoryList, tcd.m_lineSegmentPointArray, tcd.m_clusterList, tcd.m_componentIdArray);
+		MainFrame mf = new MainFrame(tcd.m_trajectoryList, tcd.m_lineSegmentPointArray,
+				tcd.m_clusterList, tcd.m_componentIdArray, tcd.m_idArray);
 
 
 //		TraClusterDoc.Parameter p = tcd.onEstimateParameter();

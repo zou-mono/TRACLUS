@@ -39,12 +39,13 @@ public class ClusterGen {
 
     private ArrayList<LineSegmentId> m_idArray = new ArrayList<ClusterGen.LineSegmentId>();
 
+    private ArrayList<CMDPoint> m_lineSegmentPointArray = new ArrayList<CMDPoint>();
+
+    public ArrayList<LineSegmentId> getM_idArray() { return m_idArray; }
     public ArrayList<CMDPoint> get_lineSegmentPointArray() {
         return m_lineSegmentPointArray;
     }
     public ArrayList<Integer> getM_componentIdArray() { return m_componentIdArray; }
-
-    private ArrayList<CMDPoint> m_lineSegmentPointArray = new ArrayList<CMDPoint>();
 
     // used for performing the DBSCAN algorithm
     public static final int UNCLASSIFIED = -2;
@@ -780,7 +781,7 @@ public class ClusterGen {
                 return 0;
             else return Double.compare(o1.orderingValue, o2.orderingValue);
         });
-//        clusterEntry.candidatePointList.sort((o1,o2)->(int)(o1.orderingValue-o2.orderingValue));
+//        clusterEntry.candidatePointList.sort((o1,o2)->(int)(o1.orderingValue-o2.orderingValue)); //jdk1.8开始这样排序有可能报错
 
         while (iter != (clusterEntry.candidatePointList.size() - 1) && clusterEntry.candidatePointList.size() > 0) {
             insertionList.clear();

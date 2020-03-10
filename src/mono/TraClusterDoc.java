@@ -16,6 +16,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.Locale;
+import mono.ClusterGen.LineSegmentId;
 
 public class TraClusterDoc {
 	private static final Logger logger = LogManager.getLogger(TraClusterDoc.class.getName());
@@ -29,6 +30,7 @@ public class TraClusterDoc {
 	public ArrayList<CMDPoint> m_lineSegmentPointArray;
 	public ArrayList<Integer> m_componentIdArray;
 	public ArrayList<Cluster> m_clusterList;
+	public ArrayList<LineSegmentId> m_idArray;
 
 	public TraClusterDoc() {
 			
@@ -217,6 +219,7 @@ public class TraClusterDoc {
 
 		m_lineSegmentPointArray = generator.get_lineSegmentPointArray();
 		m_componentIdArray = generator.getM_componentIdArray();
+		m_idArray = generator.getM_idArray();
 
 		for (int i = 0; i <m_clusterList.size(); i++) {
 			//m_clusterList.

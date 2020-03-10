@@ -17,6 +17,7 @@ import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiLineString;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
@@ -30,6 +31,7 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.List;
+import mono.ClusterGen.LineSegmentId;
 
 public class MainFrame extends JFrame {
     private static final org.apache.logging.log4j.Logger logger = LogManager.getLogger(ClusterGen.class.getName());
@@ -41,7 +43,8 @@ public class MainFrame extends JFrame {
     }
 
     public MainFrame(ArrayList<Trajectory> trajectoryAL, ArrayList<CMDPoint> lineSegmentPointArray,
-                     ArrayList<Cluster> clusterRepresentativeTrajectoryAL, ArrayList<Integer> componentIdArray) {
+                     ArrayList<Cluster> clusterRepresentativeTrajectoryAL, ArrayList<Integer> componentIdArray,
+                     ArrayList<LineSegmentId> idArray) {
         p = new Canvas();
         p.addTrajectorys(trajectoryAL);
 //        p.addClusterComponent(lineSegmentPointArray);
@@ -59,87 +62,85 @@ public class MainFrame extends JFrame {
         try {
 //            saveImageToFile(p);
             logger.info("开始输出聚类后的线段集...");
-            saveClustedLineSegmentToSHP(componentIdArray, lineSegmentPointArray);
-            logger.info("聚类后线段集成功输出到shapefile.");
+            saveClustedLineSegmentToSHP(componentIdArray, lineSegmentPointArray, idArray);
+            logger.info("聚类后线段集成功输出至shapefile.");
+
+            logger.info("开始输出表达线...");
+            saveRepresentiveTrajectoryToSHP(clusterRepresentativeTrajectoryAL);
+            logger.info("表达线成功至shapefile.");
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-//    private void saveRepresentiveTrajectoryToSHP(ArrayList<Cluster> clusterRepresentativeTrajectoryAL){
-//            String shpfile = "res/clustedLineSegments.shp";
-//            File newFile = new File(shpfile);
-//            //创建shapefileDataStore工厂
-//            ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
-//
-//            try {
-//                //参数设置
-//                Map<String, Serializable> params = new HashMap<>();
-//                params.put("url", newFile.toURI().toURL());
-//                params.put("create spatial index", Boolean.TRUE);
-//
-//                //根据关键字创建shapefileDataStore
-//                ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-//
-//                //设置编码，防止中文乱码
-//                Charset charset = Charset.forName("GBK");
-//                newDataStore.setCharset(charset);
-//
-//                //设置要素的字段名称及其类型
-//                final SimpleFeatureType TYPE =
-//                        DataUtilities.createType(
-//                                "clustedLineSegment",
-//                                "the_geom:LineString,"  // geometry属性设置
-//                                        + "class:Integer"// 存储线段所属的类别
-//                        );
-//                newDataStore.createSchema(TYPE);
-//
-//                //创建要素集合
-//                List<SimpleFeature> features = new ArrayList<>();
-//
-//                //创建要素模板
-//                GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-//                SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-//
-//                for (int i = 0; i < clusterRepresentativeTrajectoryAL.size(); i++) {
-//                    for (int j = 0; j < clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().size() - 2; j++) {
-//                        double startX = clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().get(j).getM_coordinate(0);
-//                        double startY = clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().get(j).getM_coordinate(1);
-//                        double endX = clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().get(j + 1).getM_coordinate(0);
-//                        double endY = clusterRepresentativeTrajectoryAL.get(i).getM_PointArray().get(j + 1).getM_coordinate(1);
-//
-//                    }
-//                }
-//
-//                for (int i = 0; i < lineSegmentPointArray.size(); i++) {
-//                    CMDPoint lineSegmentEntry = lineSegmentPointArray.get(i);
-//                    Integer clusterID = componentIdArray.get(i);
-//                    double startX = lineSegmentEntry.getM_coordinate(0);
-//                    double startY = lineSegmentEntry.getM_coordinate(1);
-//                    double endX = lineSegmentEntry.getM_coordinate(2);
-//                    double endY = lineSegmentEntry.getM_coordinate(3);
-//
-//                    //创建一个lineString
-//                    LineString line = geometryFactory.createLineString(
-//                            new Coordinate[]{new Coordinate(startX, startY), new Coordinate(endX, endY)});
-//                    //添加geometry属性
-//                    featureBuilder.add(line);
-//                    //添加class属性
-//                    featureBuilder.add(clusterID);
-//                    //构建要素
-//                    SimpleFeature feature = featureBuilder.buildFeature(null);
-//                    //将要素添加到要素几何中
-//                    features.add(feature);
-//                }
-//
-//                writeFeatureToSHP(newDataStore, TYPE, features);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
+    private void saveRepresentiveTrajectoryToSHP(ArrayList<Cluster> clusterRepresentativeTrajectoryAL){
+        String shpfile = "res/representiveTrajectory.shp";
+        File newFile = new File(shpfile);
+        //创建shapefileDataStore工厂
+        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
 
-    private void saveClustedLineSegmentToSHP(ArrayList<Integer> componentIdArray, ArrayList<CMDPoint> lineSegmentPointArray) {
+        try {
+            //参数设置
+            Map<String, Serializable> params = new HashMap<>();
+            params.put("url", newFile.toURI().toURL());
+            params.put("create spatial index", Boolean.TRUE);
+
+            //根据关键字创建shapefileDataStore
+            ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
+
+            //设置编码，防止中文乱码
+            Charset charset = Charset.forName("GBK");
+            newDataStore.setCharset(charset);
+
+            //设置要素的字段名称及其类型
+            final SimpleFeatureType TYPE =
+                    DataUtilities.createType(
+                            "representiveTrajectory",
+                            "the_geom:LineString," + // geometry属性设置
+                                    "rtraID:Integer," + //表达线ID
+                                    "classID:Integer"// 存储线段所属的类别
+                    );
+            newDataStore.createSchema(TYPE);
+
+            //创建要素集合
+            List<SimpleFeature> features = new ArrayList<>();
+
+            //创建要素模板
+            GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
+            SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
+
+            for (int i = 0; i < clusterRepresentativeTrajectoryAL.size(); i++) {
+                Cluster clsEntry = clusterRepresentativeTrajectoryAL.get(i);
+                Coordinate[] coords = new Coordinate[clsEntry.getM_PointArray().size()];
+
+                for (int j = 0; j < clsEntry.getM_PointArray().size(); j++) {
+                    double X = clsEntry.getM_PointArray().get(j).getM_coordinate(0);
+                    double Y = clsEntry.getM_PointArray().get(j).getM_coordinate(1);
+
+                    coords[j] = new Coordinate(X, Y);
+                }
+                //创建一个lineString
+                LineString line = geometryFactory.createLineString(coords);
+                //添加geometry属性
+                featureBuilder.add(line);
+                //添加rtraID
+                featureBuilder.add(i);
+                //添加classID属性
+                featureBuilder.add(clsEntry.getM_clusterId());
+                //构建要素
+                SimpleFeature feature = featureBuilder.buildFeature(null);
+                //将要素添加到要素几何中
+                features.add(feature);
+            }
+
+            writeFeatureToSHP(newDataStore, TYPE, features);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveClustedLineSegmentToSHP(ArrayList<Integer> componentIdArray, ArrayList<CMDPoint> lineSegmentPointArray,
+                                             ArrayList<LineSegmentId> idArray) {
 
         String shpfile = "res/clustedLineSegments.shp";
         File newFile = new File(shpfile);
@@ -163,8 +164,10 @@ public class MainFrame extends JFrame {
             final SimpleFeatureType TYPE =
                     DataUtilities.createType(
                             "clustedLineSegment",
-                            "the_geom:LineString,"  // geometry属性设置
-                                    + "class:Integer"// 存储线段所属的类别
+                            "the_geom:LineString," + // geometry属性设置
+                                    "lineID:Integer," + //线段ID
+                                    "classID:Integer," + // 存储线段所属的类别ID
+                                    "trajID:Integer" //存储线段所属的轨迹ID
                     );
             newDataStore.createSchema(TYPE);
 
@@ -178,6 +181,8 @@ public class MainFrame extends JFrame {
             for (int i = 0; i < lineSegmentPointArray.size(); i++) {
                 CMDPoint lineSegmentEntry = lineSegmentPointArray.get(i);
                 Integer clusterID = componentIdArray.get(i);
+                Integer trajectoryID = idArray.get(i).trajectoryId;
+
                 double startX = lineSegmentEntry.getM_coordinate(0);
                 double startY = lineSegmentEntry.getM_coordinate(1);
                 double endX = lineSegmentEntry.getM_coordinate(2);
@@ -186,10 +191,12 @@ public class MainFrame extends JFrame {
                 //创建一个lineString
                 LineString line = geometryFactory.createLineString(
                         new Coordinate[]{new Coordinate(startX, startY), new Coordinate(endX, endY)});
-                //添加geometry属性
+
+                //添加属性
                 featureBuilder.add(line);
-                //添加class属性
+                featureBuilder.add(i);
                 featureBuilder.add(clusterID);
+                featureBuilder.add(trajectoryID);
                 //构建要素
                 SimpleFeature feature = featureBuilder.buildFeature(null);
                 //将要素添加到要素几何中
