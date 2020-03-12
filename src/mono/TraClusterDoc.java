@@ -31,6 +31,8 @@ public class TraClusterDoc {
 	public ArrayList<Integer> m_componentIdArray;
 	public ArrayList<Cluster> m_clusterList;
 	public ArrayList<LineSegmentId> m_idArray;
+	public double epsParam;
+	public int minLnsParam;
 
 	public TraClusterDoc() {
 			
@@ -182,7 +184,8 @@ public class TraClusterDoc {
 
 	boolean onClusterGenerate(String clusterFileName, double epsParam, int minLnsParam, double minLnLen, int mdlcost) {
 //////////////////////////////////////////////////still to be written
-		
+		this.epsParam = epsParam;
+		this.minLnsParam = minLnsParam;
 		ClusterGen generator = new ClusterGen(this);
 		generator.setMinLinesegmentLength(minLnLen);
 		generator.setMdlCostAdwantage(mdlcost);
@@ -201,7 +204,7 @@ public class TraClusterDoc {
 
 		// SECOND STEP: Density-based Clustering
 		logger.info("开始聚类...");
-		if (!generator.performDBSCAN(epsParam, minLnsParam))
+		if (!generator.performDBSCAN())
 		{
 			logger.error("Unable to perform the DBSCAN algorithm\n");
 			return false;

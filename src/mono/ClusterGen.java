@@ -6,7 +6,6 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,8 +22,6 @@ public class ClusterGen {
 
     public TraClusterDoc m_document;
 
-    private double m_epsParam;
-    private int m_minLnsParam;
     private int m_nTotalLineSegments; //存储分段后的线段数量
     private int m_currComponentId;
 
@@ -41,7 +38,7 @@ public class ClusterGen {
     private CMDPoint m_projectionPoint; // = new CMDPoint( m_document.m_nDimensions);;
     double m_coefficient;
     private STRtree m_tree; //空间索引
-//    private HashMap<Integer, Deque<Integer>> m_searchRegion = new HashMap<>(); //存储所有点的空间索引范围
+    private Map<Integer, Deque<Integer>> m_searchRegion = new HashMap<>(); //存储所有点的空间索引范围
 
     private ArrayList<LineSegmentId> m_idArray = new ArrayList<ClusterGen.LineSegmentId>();
 
@@ -64,9 +61,12 @@ public class ClusterGen {
         MDL_COST_ADWANTAGE = mdlCostAdwantage;
     }
 
+    private double m_epsParam;
+    private int m_minLnsParam;
     private int MDL_COST_ADWANTAGE = 25; //25 50
     private static final int INT_MAX = Integer.MAX_VALUE;
     private static final int CPU_CORE = Runtime.getRuntime().availableProcessors();
+    private Lock _locker =new ReentrantLock();
     private long startTime, endTime;
 
     public void setMinLinesegmentLength(double minLinesegmentLength) {
@@ -126,7 +126,8 @@ public class ClusterGen {
         m_vector2 = new CMDPoint(m_document.m_nDimensions);
         m_projectionPoint = new CMDPoint(m_document.m_nDimensions);
 
-
+        m_epsParam = m_document.epsParam;
+        m_minLnsParam = m_document.minLnsParam;
         m_idArray.clear();
         m_lineSegmentPointArray.clear();
         m_tree = new STRtree(); //R树索引
@@ -163,10 +164,7 @@ public class ClusterGen {
         return true;
     }
 
-    public boolean performDBSCAN(double eps, int minLns) {
-
-        m_epsParam = eps;
-        m_minLnsParam = minLns;
+    public boolean performDBSCAN() {
 
         m_currComponentId = 0;
 
@@ -179,7 +177,7 @@ public class ClusterGen {
         for (int i = 0; i < m_nTotalLineSegments; i++) {
             if (i % 100 == 0)
                 logger.debug("processed(cluster) " + i + "...");
-            if (m_componentIdArray.get(i) == UNCLASSIFIED && expandDenseComponent2(i, m_currComponentId, eps, minLns)) {
+            if (m_componentIdArray.get(i) == UNCLASSIFIED && expandDenseComponent2(i, m_currComponentId)) {
                 m_currComponentId++;
             }
         }
@@ -236,18 +234,40 @@ public class ClusterGen {
         logger.info("分段后的线段数目是:" + m_nTotalLineSegments);
         m_tree.build();
 
-//        long startTime=System.currentTimeMillis();
-//        for(int i = 0; i < m_nTotalLineSegments; i++){
-//            Deque<Integer> seeds = new ArrayDeque<>();
-//            extractStartAndEndPoints(i, m_startPoint1, m_endPoint1);
-//            computeEPSNeighborhoodByRtree2(m_startPoint1, m_endPoint1, eps, seeds);
-//            m_searchRegion.put(i, seeds);
-//            System.out.println(i);
-//        }
-//        long endTime=System.currentTimeMillis();
-//        System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
-        logger.info("R树索引创建成功！");
+        m_searchRegion = new HashMap<>((int)(m_nTotalLineSegments/0.75) + 1);
+//        m_searchRegion = Collections.synchronizedMap(m_searchRegion);
 
+        long startTime=System.currentTimeMillis();
+        ExecutorService ThreadPool = Executors.newFixedThreadPool(CPU_CORE);
+        for(int i = 0; i < m_nTotalLineSegments; i++) {
+            Deque<Integer> seeds = computeEPSNeighborhoodByRtree(i);
+            m_searchRegion.put(i, seeds);
+//            System.out.println(i);
+        }
+//            final int num = i;
+//
+//            ThreadPool.execute(new Runnable() {
+//                @Override
+//                public void run() {
+//                    Deque<Integer> seeds = computeEPSNeighborhoodByRtree(num);
+//                    m_searchRegion.put(num, seeds);
+//                    System.out.println(num);
+//                }
+//            });
+////            System.out.println(i);
+//        }
+//        ThreadPool.shutdown();
+//
+//        while (true) {
+//            if (ThreadPool.isTerminated()) {
+//                logger.info("R树索引创建成功！");
+//                endTime=System.currentTimeMillis();
+//                System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
+//                return true;
+//            }
+//        }
+        endTime=System.currentTimeMillis();
+        System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
         return true;
     }
 
@@ -515,7 +535,7 @@ public class ClusterGen {
         return true;
     }
 
-    private boolean expandDenseComponent2(int index, int componentId, double eps, int minDensity) {
+    private boolean expandDenseComponent2(int index, int componentId) {
 
 //        if(index==43){
 //            System.out.println("slow");
@@ -527,10 +547,10 @@ public class ClusterGen {
         int currIndex;
 
         extractStartAndEndPoints(index, m_startPoint1, m_endPoint1);
-        computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seeds); //computeEPSNeighborhoodByRtree computeEPSNeighborhood
-//        seeds = m_searchRegion.get(index);
+//        computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, seeds); //computeEPSNeighborhoodByRtree computeEPSNeighborhood
+        seeds = m_searchRegion.get(index);
 
-        if (seeds.size() < minDensity) { //  not a core line segment
+        if (seeds.size() < m_minLnsParam) { //  not a core line segment
             m_componentIdArray.set(index, NOISE);
             return false;
         }
@@ -543,10 +563,10 @@ public class ClusterGen {
             currIndex = seeds.getFirst();
 
             extractStartAndEndPoints(currIndex, m_startPoint1, m_endPoint1);
-            computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seedResult);
-//            seedResult = m_searchRegion.get(currIndex);
+//            computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, seedResult);
+            seedResult = m_searchRegion.get(currIndex);
 
-            if (seedResult.size() >= minDensity) {
+            if (seedResult.size() >= m_minLnsParam) {
                 for(Integer iter: seedResult){
                     if (m_componentIdArray.get(iter) == UNCLASSIFIED ||
                             m_componentIdArray.get(iter) == NOISE) {
@@ -646,7 +666,7 @@ public class ClusterGen {
         logger.info("完成汇总聚类线段集的信息.");
 
         logger.info("开始计算表达线段...");
-        ExecutorService ThreadPool = Executors.newFixedThreadPool(CPU_CORE*2);
+        ExecutorService ThreadPool = Executors.newFixedThreadPool(CPU_CORE);
 
 //        Set<Integer> trajectories = new HashSet<Integer>();
         for (int i = 0; i < m_currComponentId; i++) {
@@ -667,7 +687,7 @@ public class ClusterGen {
                     @Override
                     public void run() {
                         computeRepresentativeLines2(clusterEntry);
-                        System.out.println(num);
+//                        System.out.println(num);
                     }
                 });
             } else {
@@ -955,7 +975,7 @@ public class ClusterGen {
         double orderingValue2 = GET_X_ROTATION(aLineSegment.getM_coordinate(2),
                 aLineSegment.getM_coordinate(3), clusterEntry.cosTheta, clusterEntry.sinTheta);
 
-        CandidateClusterPoint existingCandidatePoint, newCandidatePoint1, newCandidatePoint2;
+        CandidateClusterPoint newCandidatePoint1, newCandidatePoint2;
         int i, j;
         //  插入的时候不排序，后面用的时候再排序
         //  START ...
@@ -1016,12 +1036,16 @@ public class ClusterGen {
         }
 	}
 
-    private void computeEPSNeighborhoodByRtree(CMDPoint startPoint, CMDPoint endPoint, double eps, Deque<Integer> result) {
-        result.clear();
-        Geometry searchRegion = get_bounding_box_of_line_segment(startPoint, endPoint, eps); //直接最大外接矩形
+    private Deque<Integer> computeEPSNeighborhoodByRtree(int num) {
+        Deque<Integer> result = new ArrayDeque<>();
+
+        CMDPoint startPoint = new CMDPoint();
+        CMDPoint endPoint = new CMDPoint();
+        extractStartAndEndPoints(num, startPoint, endPoint);
+        Geometry searchRegion = get_bounding_box_of_line_segment(startPoint, endPoint, m_epsParam); //直接最大外接矩形
         List lst = m_tree.query(searchRegion.getEnvelopeInternal());
 
-        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
+//        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
 
         for (int i = 0; i < lst.size(); i++) {
             int segmentID = (int)lst.get(i);
@@ -1031,7 +1055,7 @@ public class ClusterGen {
             extractStartAndEndPoints(segmentID, m_startPoint2, m_endPoint2);
             double distance = computeDistanceBetweenTwoLineSegments(startPoint, endPoint, m_startPoint2, m_endPoint2);
 
-            if (distance <= eps)
+            if (distance <= m_epsParam)
                 result.addFirst(segmentID);
 
 //            Coordinate[] coords  =
@@ -1046,6 +1070,7 @@ public class ClusterGen {
 //                    result.addFirst(segmentID);
 //            }
         }
+        return result;
 //        logger.debug(result.size());
     }
 
