@@ -221,17 +221,17 @@ public class TraClusterDoc {
 		m_componentIdArray = generator.getM_componentIdArray();
 		m_idArray = generator.getM_idArray();
 
-		for (int i = 0; i <m_clusterList.size(); i++) {
-			//m_clusterList.
-			System.out.println(m_clusterList.get(i).getM_clusterId());
-			for (int j = 0; j<m_clusterList.get(i).getM_PointArray().size(); j++) {
-				
-				double x = m_clusterList.get(i).getM_PointArray().get(j).getM_coordinate(0);
-				double y = m_clusterList.get(i).getM_PointArray().get(j).getM_coordinate(1);
-			System.out.print("   "+ x +" "+ y +"   ");
-			}
-			System.out.println();
-		}
+//		for (int i = 0; i <m_clusterList.size(); i++) {
+//			//m_clusterList.
+//			System.out.println(m_clusterList.get(i).getM_clusterId());
+//			for (int j = 0; j<m_clusterList.get(i).getM_PointArray().size(); j++) {
+//
+//				double x = m_clusterList.get(i).getM_PointArray().get(j).getM_coordinate(0);
+//				double y = m_clusterList.get(i).getM_PointArray().get(j).getM_coordinate(1);
+//			System.out.print("   "+ x +" "+ y +"   ");
+//			}
+//			System.out.println();
+//		}
 		FileOutputStream fos = null;
 		BufferedWriter bw = null;
 		OutputStreamWriter osw = null;

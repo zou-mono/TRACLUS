@@ -1,8 +1,14 @@
 package mono;
 
 import java.awt.*;
+import java.io.IOException;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import mono.TraClusterDoc.Parameter;
 import org.apache.logging.log4j.LogManager;
@@ -60,6 +66,8 @@ public class ClusterGen {
 
     private int MDL_COST_ADWANTAGE = 25; //25 50
     private static final int INT_MAX = Integer.MAX_VALUE;
+    private static final int CPU_CORE = Runtime.getRuntime().availableProcessors();
+    private long startTime, endTime;
 
     public void setMinLinesegmentLength(double minLinesegmentLength) {
         MIN_LINESEGMENT_LENGTH = minLinesegmentLength;
@@ -91,10 +99,10 @@ public class ClusterGen {
         CMDPoint avgDirectionVector;
         double cosTheta, sinTheta;
         ArrayList<CandidateClusterPoint> candidatePointList = new ArrayList<ClusterGen.CandidateClusterPoint>();
-//        Queue<CandidateClusterPoint> candidatePointHeap= new PriorityQueue<>(
-//                (e1, e2) -> (int) (e1.orderingValue - e2.orderingValue));
+//        List<CandidateClusterPoint> candidatePointList = Collections.synchronizedList(new ArrayList<ClusterGen.CandidateClusterPoint>());
         int nClusterPoints;
-        ArrayList<CMDPoint> clusterPointArray = new ArrayList<CMDPoint>();
+//        List<CMDPoint> clusterPointArray = Collections.synchronizedList(new ArrayList<CMDPoint>());
+        ArrayList<CMDPoint> clusterPointArray =  new ArrayList<CMDPoint>();
         int nTrajectories;
         ArrayList<Integer> trajectoryIdList = new ArrayList<Integer>();
         boolean enabled;
@@ -128,13 +136,15 @@ public class ClusterGen {
         // this step consists of two sub-steps
         // notice that the result of the previous sub-step is used in the following sub-steps
         logger.info("开始构建新的轨迹...\n");
+        startTime = System.currentTimeMillis();
         if (!constructLineSegmentCluster()) {
             return false;
         }
         if (!storeLineSegmentCluster()) {
             return false;
         }
-        logger.info("新轨迹构建完成.\n");
+        endTime = System.currentTimeMillis();
+        logger.info("新轨迹构建完成.花费时间:" + (endTime - startTime)/1000 + "秒\n");
         return true;
     }
 
@@ -578,9 +588,6 @@ public class ClusterGen {
         for (int i = 0; i < m_nTotalLineSegments; i++) {
             int componentId = m_componentIdArray.get(i);
             if (componentId >= 0) {
-//                if(componentId == 0){
-//                    System.out.println("test");
-//                }
                 for (int j = 0; j < nDimensions; j++) {
                     double difference = m_lineSegmentPointArray.get(i).getM_coordinate(nDimensions + j)
                             - m_lineSegmentPointArray.get(i).getM_coordinate(j);
@@ -639,9 +646,11 @@ public class ClusterGen {
         logger.info("完成汇总聚类线段集的信息.");
 
         logger.info("开始计算表达线段...");
-        Set<Integer> trajectories = new HashSet<Integer>();
+        ExecutorService ThreadPool = Executors.newFixedThreadPool(CPU_CORE*2);
+
+//        Set<Integer> trajectories = new HashSet<Integer>();
         for (int i = 0; i < m_currComponentId; i++) {
-            LineSegmentCluster clusterEntry = (m_lineSegmentClusters[i]);
+            final LineSegmentCluster clusterEntry = (m_lineSegmentClusters[i]);
 
             //  a line segment cluster must have trajectories more than the minimum threshold
             if (clusterEntry.nTrajectories >= m_minLnsParam) {
@@ -652,117 +661,37 @@ public class ClusterGen {
 //                    trajectories.add(clusterEntry.trajectoryIdList.get(j));
 //                }
 
-                computeRepresentativeLines2(clusterEntry);
-                // computeRepresentativeLines(m_lineSegmentClusters[i]);
+//                computeRepresentativeLines2(i);
+                final int num = i;
+                ThreadPool.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        computeRepresentativeLines2(clusterEntry);
+                        System.out.println(num);
+                    }
+                });
             } else {
                 clusterEntry.candidatePointList.clear();
                 clusterEntry.clusterPointArray.clear();
                 clusterEntry.trajectoryIdList.clear();
             }
-            System.out.println(i);
-//            if(i == 19){
-//                System.out.println("slow");
-//            }
+//            System.out.println(i);
         }
-        logger.info("完成计算表达线段.");
+//        logger.info("完成计算表达线段.");
+        ThreadPool.shutdown();
+        while (true) {
+            if (ThreadPool.isTerminated()) {
+                logger.info("完成计算表达线段.");
+                return true;
+            }
+        }
+
         //  DEBUG: compute the ratio of trajectories that belong to clusters
 //        m_document.m_clusterRatio = (double) trajectories.size() / (double) m_document.m_nTrajectories;
-
-        return true;
-    }
-
-
-    private void computeRepresentativeLines(LineSegmentCluster clusterEntry) {
-
-        Set<Integer> lineSegments = new LinkedHashSet<Integer>();
-        Set<Integer> insertionList = new LinkedHashSet<Integer>();
-        Set<Integer> deletionList = new LinkedHashSet<Integer>();
-
-        int iter = 0;
-        CandidateClusterPoint candidatePoint, nextCandidatePoint;
-        double prevOrderingValue = 0.0;
-
-        int nClusterPoints = 0;
-        lineSegments.clear();
-
-        //  sweep the line segments in a line segment cluster
-
-        while (iter != (clusterEntry.candidatePointList.size() - 1) && clusterEntry.candidatePointList.size() > 0) {
-            insertionList.clear();
-            deletionList.clear();
-
-            do {
-                candidatePoint = clusterEntry.candidatePointList.get(iter);
-                iter++;
-                //  check whether this line segment has begun or not
-                if (!lineSegments.contains(candidatePoint.lineSegmentId)) {
-                    // iter1 = lineSegments.find(candidatePoint.lineSegmentId);
-                    // if (iter1 == lineSegments.end())	{				//  if there is no matched element,
-                    insertionList.add(candidatePoint.lineSegmentId);        //  this line segment begins at this point
-                    lineSegments.add(candidatePoint.lineSegmentId);
-                } else {                        //  if there is a matched element,
-                    deletionList.add(candidatePoint.lineSegmentId);        //  this line segment ends at this point
-                }
-                //  check whether the next line segment begins or ends at the same point
-                if (iter != (clusterEntry.candidatePointList.size() - 1)) {
-                    nextCandidatePoint = clusterEntry.candidatePointList.get(iter);
-                } else {
-                    break;
-                }
-            } while (candidatePoint.orderingValue == nextCandidatePoint.orderingValue);
-
-            //  check if a line segment is connected to another line segment in the same trajectory
-            //  if so, delete one of the line segments to remove duplicates
-            // for (iter2 = insertionList.begin(); iter2 != insertionList.end(); iter2++)
-            for (int iter2 = 0; iter2 < insertionList.size(); iter2++) {
-                for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
-                    int a = (Integer) (insertionList.toArray()[iter2]);
-                    int b = (Integer) (deletionList.toArray()[iter3]);
-                    if (a == b) {
-                        lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
-                        deletionList.remove((Integer) (deletionList.toArray()[iter3]));
-                        break;
-                    }
-                }
-
-                for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
-                    if (m_idArray.get((Integer) (insertionList.toArray()[iter2])).trajectoryId
-                            == m_idArray.get((Integer) (deletionList.toArray()[iter3])).trajectoryId) {
-                        lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
-                        deletionList.remove((Integer) (deletionList.toArray()[iter3]));
-                        break;
-                    }
-                }
-            }
-
-            // if the current density exceeds a given threshold
-            if ((int) (lineSegments.size()) >= m_minLnsParam) {
-                if (Math.abs(candidatePoint.orderingValue - prevOrderingValue) > MIN_DIFFERENT_LENGTH) {
-                    computeAndRegisterClusterPoint(clusterEntry, candidatePoint.orderingValue, lineSegments);
-                    prevOrderingValue = candidatePoint.orderingValue;
-                    nClusterPoints++;
-                }
-            }
-
-            //  delete the line segment that is not connected to another line segment
-            for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
-                lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
-            }
-        }
-
-        if (nClusterPoints >= 2) {
-            clusterEntry.nClusterPoints = nClusterPoints;
-        } else {
-            //  there is no representative trend in this line segment cluster
-            clusterEntry.enabled = false;
-            clusterEntry.candidatePointList.clear();
-            clusterEntry.clusterPointArray.clear();
-            clusterEntry.trajectoryIdList.clear();
-        }
-        return;
     }
 
     private void computeRepresentativeLines2(LineSegmentCluster clusterEntry) {
+//        final LineSegmentCluster clusterEntry = (m_lineSegmentClusters[i]);
 
         Set<Integer> lineSegments = new LinkedHashSet<Integer>();
         Set<Integer> insertionList = new LinkedHashSet<Integer>();
@@ -809,40 +738,61 @@ public class ClusterGen {
 
             //  check if a line segment is connected to another line segment in the same trajectory
             //  if so, delete one of the line segments to remove duplicates
-            // for (iter2 = insertionList.begin(); iter2 != insertionList.end(); iter2++)
-            for (int iter2 = 0; iter2 < insertionList.size(); iter2++) {
-                for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
-                    int a = (Integer) (insertionList.toArray()[iter2]);
-                    int b = (Integer) (deletionList.toArray()[iter3]);
-                    if (a == b) {
-                        lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
-                        deletionList.remove((Integer) (deletionList.toArray()[iter3]));
+             for (Integer iter2: insertionList){
+                for (Integer iter3 : deletionList) {
+//                    int a = iter2;
+//                    int b = iter3;
+                    if (iter2.equals(iter3)) {
+                        lineSegments.remove(iter3);
+                        deletionList.remove(iter3);
                         break;
                     }
                 }
 
-                for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
-                    if (m_idArray.get((Integer) (insertionList.toArray()[iter2])).trajectoryId
-                            == m_idArray.get((Integer) (deletionList.toArray()[iter3])).trajectoryId) {
-                        lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
-                        deletionList.remove((Integer) (deletionList.toArray()[iter3]));
+                for (Integer iter3 : deletionList) {
+                    if (m_idArray.get(iter2).trajectoryId
+                            == m_idArray.get(iter3).trajectoryId) {
+                        lineSegments.remove(iter3);
+                        deletionList.remove(iter3);
                         break;
                     }
                 }
             }
+//            for (int iter2 = 0; iter2 < insertionList.size(); iter2++) {
+//                for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
+//                    int a = (Integer) (insertionList.toArray()[iter2]);
+//                    int b = (Integer) (deletionList.toArray()[iter3]);
+//                    if (a == b) {
+//                        lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
+//                        deletionList.remove((Integer) (deletionList.toArray()[iter3]));
+//                        break;
+//                    }
+//                }
+//
+//                for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
+//                    if (m_idArray.get((Integer) (insertionList.toArray()[iter2])).trajectoryId
+//                            == m_idArray.get((Integer) (deletionList.toArray()[iter3])).trajectoryId) {
+//                        lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
+//                        deletionList.remove((Integer) (deletionList.toArray()[iter3]));
+//                        break;
+//                    }
+//                }
+//            }
 
             // if the current density exceeds a given threshold
             if (lineSegments.size() >= m_minLnsParam) {
                 if (Math.abs(candidatePoint.orderingValue - prevOrderingValue) > MIN_DIFFERENT_LENGTH) {
-                    computeAndRegisterClusterPoint(clusterEntry, candidatePoint.orderingValue, lineSegments);
+                    CMDPoint clusterPoint = computeAndRegisterClusterPoint(clusterEntry, candidatePoint.orderingValue, lineSegments);
+                    // register the obtained cluster point (i.e., the average of all the sweep points)
+                    clusterEntry.clusterPointArray.add(clusterPoint);
                     prevOrderingValue = candidatePoint.orderingValue;
                     nClusterPoints++;
                 }
             }
 
             //  delete the line segment that is not connected to another line segment
-            for (int iter3 = 0; iter3 < deletionList.size(); iter3++) {
-                lineSegments.remove((Integer) (deletionList.toArray()[iter3]));
+            for (Integer iter3 : deletionList) {
+                lineSegments.remove(iter3);
             }
         }
 
@@ -858,7 +808,7 @@ public class ClusterGen {
         return;
     }
 
-    private void computeAndRegisterClusterPoint(
+    private CMDPoint computeAndRegisterClusterPoint(
             LineSegmentCluster clusterEntry,
             double currValue,
             Set<Integer> lineSegments) {
@@ -885,31 +835,27 @@ public class ClusterGen {
         clusterPoint.setM_coordinate(0, origX);
         clusterPoint.setM_coordinate(1, origY);
 
-        // register the obtained cluster point (i.e., the average of all the sweep points)
-        clusterEntry.clusterPointArray.add(clusterPoint);
-
-        return;
+        return clusterPoint;
     }
 
     private void getSweepPointOfLineSegment(LineSegmentCluster clusterEntry,
                                             double currValue, int lineSegmentId, CMDPoint sweepPoint) {
+                                                     CMDPoint lineSegmentPoint = m_lineSegmentPointArray.get(lineSegmentId);        //  2n-dimensional point
+    double coefficient;
 
-        CMDPoint lineSegmentPoint = m_lineSegmentPointArray.get(lineSegmentId);        //  2n-dimensional point
-        double coefficient;
+    //  NOTE: this program code works only for the 2-dimensional data
+    double newStartX, newEndX, newStartY, newEndY;
+    newStartX = GET_X_ROTATION(lineSegmentPoint.getM_coordinate(0), lineSegmentPoint.getM_coordinate(1), clusterEntry.cosTheta, clusterEntry.sinTheta);
+    newEndX = GET_X_ROTATION(lineSegmentPoint.getM_coordinate(2), lineSegmentPoint.getM_coordinate(3), clusterEntry.cosTheta, clusterEntry.sinTheta);
+    newStartY = GET_Y_ROTATION(lineSegmentPoint.getM_coordinate(0), lineSegmentPoint.getM_coordinate(1), clusterEntry.cosTheta, clusterEntry.sinTheta);
+    newEndY = GET_Y_ROTATION(lineSegmentPoint.getM_coordinate(2), lineSegmentPoint.getM_coordinate(3), clusterEntry.cosTheta, clusterEntry.sinTheta);
 
-        //  NOTE: this program code works only for the 2-dimensional data
-        double newStartX, newEndX, newStartY, newEndY;
-        newStartX = GET_X_ROTATION(lineSegmentPoint.getM_coordinate(0), lineSegmentPoint.getM_coordinate(1), clusterEntry.cosTheta, clusterEntry.sinTheta);
-        newEndX = GET_X_ROTATION(lineSegmentPoint.getM_coordinate(2), lineSegmentPoint.getM_coordinate(3), clusterEntry.cosTheta, clusterEntry.sinTheta);
-        newStartY = GET_Y_ROTATION(lineSegmentPoint.getM_coordinate(0), lineSegmentPoint.getM_coordinate(1), clusterEntry.cosTheta, clusterEntry.sinTheta);
-        newEndY = GET_Y_ROTATION(lineSegmentPoint.getM_coordinate(2), lineSegmentPoint.getM_coordinate(3), clusterEntry.cosTheta, clusterEntry.sinTheta);
-
-        coefficient = (currValue - newStartX) / (newEndX - newStartX);
+    coefficient = (currValue - newStartX) / (newEndX - newStartX);
         sweepPoint.setM_coordinate(0, currValue);
         sweepPoint.setM_coordinate(1, newStartY + coefficient * (newEndY - newStartY));
 
         return;
-    }
+}
 
 
     private double GET_X_ROTATION(double _x, double _y, double _cos, double _sin) {
