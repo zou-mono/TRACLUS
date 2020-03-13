@@ -4,6 +4,7 @@ import java.awt.*;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
@@ -38,7 +39,8 @@ public class ClusterGen {
     private CMDPoint m_projectionPoint; // = new CMDPoint( m_document.m_nDimensions);;
     double m_coefficient;
     private STRtree m_tree; //空间索引
-    private Map<Integer, Deque<Integer>> m_searchRegion = new HashMap<>(); //存储所有点的空间索引范围
+//    private Map<Integer, Queue<Integer>> m_searchRegion = new HashMap<>(); //存储所有点的空间索引范围
+    private Map<Integer, Queue<Integer>> m_searchRegion = new ConcurrentHashMap<>(); //存储所有点的空间索引范围
 
     private ArrayList<LineSegmentId> m_idArray = new ArrayList<ClusterGen.LineSegmentId>();
 
@@ -234,41 +236,43 @@ public class ClusterGen {
         logger.info("分段后的线段数目是:" + m_nTotalLineSegments);
         m_tree.build();
 
-        m_searchRegion = new HashMap<>((int)(m_nTotalLineSegments/0.75) + 1);
+        m_searchRegion = new ConcurrentHashMap<>((int)(m_nTotalLineSegments/0.75) + 1);
 //        m_searchRegion = Collections.synchronizedMap(m_searchRegion);
 
         long startTime=System.currentTimeMillis();
         ExecutorService ThreadPool = Executors.newFixedThreadPool(CPU_CORE);
         for(int i = 0; i < m_nTotalLineSegments; i++) {
-            Deque<Integer> seeds = computeEPSNeighborhoodByRtree(i);
-            m_searchRegion.put(i, seeds);
-//            System.out.println(i);
-        }
-//            final int num = i;
-//
-//            ThreadPool.execute(new Runnable() {
-//                @Override
-//                public void run() {
-//                    Deque<Integer> seeds = computeEPSNeighborhoodByRtree(num);
-//                    m_searchRegion.put(num, seeds);
-//                    System.out.println(num);
-//                }
-//            });
+//            Deque<Integer> seeds = computeEPSNeighborhoodByRtree(i);
+//            m_searchRegion.put(i, seeds);
 ////            System.out.println(i);
 //        }
-//        ThreadPool.shutdown();
-//
-//        while (true) {
-//            if (ThreadPool.isTerminated()) {
-//                logger.info("R树索引创建成功！");
-//                endTime=System.currentTimeMillis();
-//                System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
-//                return true;
-//            }
-//        }
-        endTime=System.currentTimeMillis();
-        System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
-        return true;
+//            endTime=System.currentTimeMillis();
+//            System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
+//            return true;
+            final int num = i;
+
+            ThreadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    Queue<Integer> result = new LinkedList<>();
+                    computeEPSNeighborhoodByRtree(num, result);
+                    m_searchRegion.put(num, result);
+//                    System.out.println(num);
+                }
+            });
+//            System.out.println(i);
+        }
+        ThreadPool.shutdown();
+
+        while (true) {
+            if (ThreadPool.isTerminated()) {
+                logger.info("R树索引创建成功！");
+                endTime=System.currentTimeMillis();
+                System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
+                return true;
+            }
+        }
+
     }
 
     private void findOptimalPartition(Trajectory pTrajectory) {
@@ -541,8 +545,10 @@ public class ClusterGen {
 //            System.out.println("slow");
 //        }
 
-        Deque<Integer> seeds = new ArrayDeque<Integer>();
-        Deque<Integer> seedResult = new ArrayDeque<Integer>();
+//        Deque<Integer> seeds = new ArrayDeque<Integer>();
+//        Deque<Integer> seedResult = new ArrayDeque<Integer>();
+        Queue<Integer> seeds;
+        Queue<Integer> seedResult;
 
         int currIndex;
 
@@ -560,7 +566,8 @@ public class ClusterGen {
         }
         seeds.remove(index);
         while (!seeds.isEmpty()) {
-            currIndex = seeds.getFirst();
+//            currIndex = seeds.getFirst();
+            currIndex = seeds.peek();
 
             extractStartAndEndPoints(currIndex, m_startPoint1, m_endPoint1);
 //            computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, seedResult);
@@ -571,14 +578,16 @@ public class ClusterGen {
                     if (m_componentIdArray.get(iter) == UNCLASSIFIED ||
                             m_componentIdArray.get(iter) == NOISE) {
                         if (m_componentIdArray.get(iter) == UNCLASSIFIED) {
-                            seeds.addLast(iter);
+//                            seeds.addLast(iter);
+                            seeds.offer(iter);
                         }
                         m_componentIdArray.set(iter, componentId);
                     }
                 }
             }
 
-            seeds.removeFirst();
+//            seeds.removeFirst();
+            seeds.poll();
         }
 
         return true;
@@ -1018,31 +1027,10 @@ public class ClusterGen {
         }
     }
 
-	private void computeEPSNeighborhoodByRtree(CMDPoint startPoint, CMDPoint endPoint, double eps, Set<Integer> result) {
-		result.clear();
-		Geometry searchRegion = get_bounding_box_of_line_segment(startPoint, endPoint, eps); //直接最大外接矩形
-        List lst = m_tree.query(searchRegion.getEnvelopeInternal());
-
-        for (int i = 0; i < lst.size(); i++) {
-            int segmentID = (int)lst.get(i);
-//            System.out.println(segmentID);
-            extractStartAndEndPoints(segmentID, m_startPoint2, m_endPoint2);
-            double distance = computeDistanceBetweenTwoLineSegments(startPoint, endPoint, m_startPoint2, m_endPoint2);
-//            double distance = measureDistanceFromPointToLineSegment(m_startPoint2, m_endPoint2, startPoint);
-
-            if (distance <= eps)
-                result.add(segmentID);
-//            result.add(segmentID);
-        }
-	}
-
-    private Deque<Integer> computeEPSNeighborhoodByRtree(int num) {
-        Deque<Integer> result = new ArrayDeque<>();
-
-        CMDPoint startPoint = new CMDPoint();
-        CMDPoint endPoint = new CMDPoint();
-        extractStartAndEndPoints(num, startPoint, endPoint);
-        Geometry searchRegion = get_bounding_box_of_line_segment(startPoint, endPoint, m_epsParam); //直接最大外接矩形
+    private void computeEPSNeighborhoodByRtree(int num, double eps, Queue<Integer> result) {
+        result.clear();
+        extractStartAndEndPoints(num, m_startPoint1, m_endPoint1);
+        Geometry searchRegion = get_bounding_box_of_line_segment(m_startPoint1, m_endPoint1, m_epsParam); //直接最大外接矩形
         List lst = m_tree.query(searchRegion.getEnvelopeInternal());
 
 //        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
@@ -1053,25 +1041,38 @@ public class ClusterGen {
 //                System.out.println("0");
 //            }
             extractStartAndEndPoints(segmentID, m_startPoint2, m_endPoint2);
-            double distance = computeDistanceBetweenTwoLineSegments(startPoint, endPoint, m_startPoint2, m_endPoint2);
+            double distance = computeDistanceBetweenTwoLineSegments(m_startPoint1, m_endPoint1, m_startPoint2, m_endPoint2);
 
             if (distance <= m_epsParam)
-                result.addFirst(segmentID);
-
-//            Coordinate[] coords  =
-//                    new Coordinate[] {new Coordinate(m_startPoint2.getM_coordinate(0),m_startPoint2.getM_coordinate(1)),
-//                            new Coordinate(m_endPoint2.getM_coordinate(0),m_endPoint2.getM_coordinate(1))};
-//
-//            LineString line = geometryFactory.createLineString(coords);
-//            if(line.intersects(searchRegion)) {
-//                double distance = computeDistanceBetweenTwoLineSegments(startPoint, endPoint, m_startPoint2, m_endPoint2);
-//
-//                if (distance <= eps)
-//                    result.addFirst(segmentID);
-//            }
+                result.offer(segmentID);
         }
-        return result;
+//        m_searchRegion.put(num, result);
 //        logger.debug(result.size());
+    }
+
+    private void computeEPSNeighborhoodByRtree(int num, Queue<Integer> result) {
+        CMDPoint startPoint = new CMDPoint();
+        CMDPoint endPoint = new CMDPoint();
+        extractStartAndEndPoints(num, startPoint, endPoint);
+        Geometry searchRegion = get_bounding_box_of_line_segment(startPoint, endPoint, m_epsParam); //直接最大外接矩形
+        List lst = m_tree.query(searchRegion.getEnvelopeInternal());
+
+        _locker.lock();
+        for (int i = 0; i < lst.size(); i++) {
+            int segmentID = (int)lst.get(i);
+//            if(segmentID == 0){
+//                System.out.println("0");
+//            }
+            CMDPoint startPoint2 = new CMDPoint();
+            CMDPoint endPoint2 = new CMDPoint();
+            extractStartAndEndPoints(segmentID, startPoint2, endPoint2);
+            double distance = computeDistanceBetweenTwoLineSegments(startPoint, endPoint, startPoint2, endPoint2);
+
+            if (distance <= m_epsParam)
+                result.offer(segmentID);
+        }
+        _locker.unlock();
+//        return result;
     }
 
 	private Geometry get_bounding_box_of_line_segment(CMDPoint startPoint, CMDPoint endPoint, double radius) {
@@ -1242,7 +1243,8 @@ public class ClusterGen {
         double entropy, minEntropy = (double) INT_MAX;
         double eps, minEps = (double) INT_MAX;
         int totalSize, minTotalSize = INT_MAX;
-        Set<Integer> seeds = new HashSet<Integer>();
+//        Set<Integer> seeds = new HashSet<Integer>();
+        Queue<Integer> seeds = new LinkedList<>();
 
         int[] EpsNeighborhoodSize = new int[m_nTotalLineSegments];
 
@@ -1251,8 +1253,8 @@ public class ClusterGen {
             totalSize = 0;
             seeds.clear();
             for (int i = 0; i < m_nTotalLineSegments; i++) {
-                extractStartAndEndPoints(i, m_startPoint1, m_endPoint1);
-                computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, eps, seeds);
+//                extractStartAndEndPoints(i, m_startPoint1, m_endPoint1);
+                computeEPSNeighborhoodByRtree(i, eps, seeds);
                 EpsNeighborhoodSize[i] = (int) seeds.size();
                 totalSize += (int) seeds.size();
                 seeds.clear();
