@@ -234,6 +234,7 @@ public class ClusterGen {
         }
 
         logger.info("分段后的线段数目是:" + m_nTotalLineSegments);
+        logger.info("开始创建R数索引");
         m_tree.build();
 
         m_searchRegion = new ConcurrentHashMap<>((int)(m_nTotalLineSegments/0.75) + 1);
@@ -257,7 +258,7 @@ public class ClusterGen {
                     Queue<Integer> result = new LinkedList<>();
                     computeEPSNeighborhoodByRtree(num, result);
                     m_searchRegion.put(num, result);
-//                    System.out.println(num);
+//                    logger.debug(num);
                 }
             });
 //            System.out.println(i);
@@ -266,9 +267,8 @@ public class ClusterGen {
 
         while (true) {
             if (ThreadPool.isTerminated()) {
-                logger.info("R树索引创建成功！");
                 endTime=System.currentTimeMillis();
-                System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
+                logger.info("R树索引创建成功！花费时间" + (endTime-startTime) / 1000);
                 return true;
             }
         }
