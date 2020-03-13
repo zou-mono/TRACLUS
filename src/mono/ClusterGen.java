@@ -40,7 +40,7 @@ public class ClusterGen {
     double m_coefficient;
     private STRtree m_tree; //空间索引
 //    private Map<Integer, Queue<Integer>> m_searchRegion = new HashMap<>(); //存储所有点的空间索引范围
-    private Map<Integer, Queue<Integer>> m_searchRegion = new ConcurrentHashMap<>(); //存储所有点的空间索引范围
+//    private Map<Integer, Queue<Integer>> m_searchRegion = new ConcurrentHashMap<>(); //存储所有点的空间索引范围
 
     private ArrayList<LineSegmentId> m_idArray = new ArrayList<ClusterGen.LineSegmentId>();
 
@@ -68,7 +68,7 @@ public class ClusterGen {
     private int MDL_COST_ADWANTAGE = 25; //25 50
     private static final int INT_MAX = Integer.MAX_VALUE;
     private static final int CPU_CORE = Runtime.getRuntime().availableProcessors();
-    private Lock _locker =new ReentrantLock();
+//    private Lock _locker =new ReentrantLock();
     private long startTime, endTime;
 
     public void setMinLinesegmentLength(double minLinesegmentLength) {
@@ -236,42 +236,44 @@ public class ClusterGen {
         logger.info("分段后的线段数目是:" + m_nTotalLineSegments);
         logger.info("开始创建R数索引");
         m_tree.build();
+        logger.info("R树索引创建成功!");
 
-        m_searchRegion = new ConcurrentHashMap<>((int)(m_nTotalLineSegments/0.75) + 1);
+        return true;
+//        m_searchRegion = new ConcurrentHashMap<>((int)(m_nTotalLineSegments/0.75) + 1);
 //        m_searchRegion = Collections.synchronizedMap(m_searchRegion);
 
-        long startTime=System.currentTimeMillis();
-        ExecutorService ThreadPool = Executors.newFixedThreadPool(CPU_CORE);
-        for(int i = 0; i < m_nTotalLineSegments; i++) {
-//            Deque<Integer> seeds = computeEPSNeighborhoodByRtree(i);
-//            m_searchRegion.put(i, seeds);
+//        long startTime=System.currentTimeMillis();
+//        ExecutorService ThreadPool = Executors.newFixedThreadPool(CPU_CORE);
+//        for(int i = 0; i < m_nTotalLineSegments; i++) {
+////            Deque<Integer> seeds = computeEPSNeighborhoodByRtree(i);
+////            m_searchRegion.put(i, seeds);
+//////            System.out.println(i);
+////        }
+////            endTime=System.currentTimeMillis();
+////            System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
+////            return true;
+//            final int num = i;
+//
+//            ThreadPool.execute(new Runnable() {
+//                @Override
+//                public void run() {
+//                    Queue<Integer> result = new LinkedList<>();
+//                    computeEPSNeighborhoodByRtree(num, result);
+//                    m_searchRegion.put(num, result);
+////                    logger.debug(num);
+//                }
+//            });
 ////            System.out.println(i);
 //        }
-//            endTime=System.currentTimeMillis();
-//            System.out.println("建立索引花费时间" + (endTime-startTime) / 1000);
-//            return true;
-            final int num = i;
-
-            ThreadPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    Queue<Integer> result = new LinkedList<>();
-                    computeEPSNeighborhoodByRtree(num, result);
-                    m_searchRegion.put(num, result);
-//                    logger.debug(num);
-                }
-            });
-//            System.out.println(i);
-        }
-        ThreadPool.shutdown();
-
-        while (true) {
-            if (ThreadPool.isTerminated()) {
-                endTime=System.currentTimeMillis();
-                logger.info("R树索引创建成功！花费时间" + (endTime-startTime) / 1000);
-                return true;
-            }
-        }
+//        ThreadPool.shutdown();
+//
+//        while (true) {
+//            if (ThreadPool.isTerminated()) {
+//                endTime=System.currentTimeMillis();
+//                logger.info("R树索引创建成功！花费时间" + (endTime-startTime) / 1000);
+//                return true;
+//            }
+//        }
 
     }
 
@@ -547,14 +549,14 @@ public class ClusterGen {
 
 //        Deque<Integer> seeds = new ArrayDeque<Integer>();
 //        Deque<Integer> seedResult = new ArrayDeque<Integer>();
-        Queue<Integer> seeds;
-        Queue<Integer> seedResult;
+        Queue<Integer> seeds = new LinkedList<>();
+        Queue<Integer> seedResult = new LinkedList<>();
 
         int currIndex;
 
-        extractStartAndEndPoints(index, m_startPoint1, m_endPoint1);
-//        computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, seeds); //computeEPSNeighborhoodByRtree computeEPSNeighborhood
-        seeds = m_searchRegion.get(index);
+//        extractStartAndEndPoints(index, m_startPoint1, m_endPoint1);
+        computeEPSNeighborhoodByRtree(index, seeds); //computeEPSNeighborhoodByRtree computeEPSNeighborhood
+//        seeds = m_searchRegion.get(index);
 
         if (seeds.size() < m_minLnsParam) { //  not a core line segment
             m_componentIdArray.set(index, NOISE);
@@ -569,9 +571,9 @@ public class ClusterGen {
 //            currIndex = seeds.getFirst();
             currIndex = seeds.peek();
 
-            extractStartAndEndPoints(currIndex, m_startPoint1, m_endPoint1);
-//            computeEPSNeighborhoodByRtree(m_startPoint1, m_endPoint1, seedResult);
-            seedResult = m_searchRegion.get(currIndex);
+//            extractStartAndEndPoints(currIndex, m_startPoint1, m_endPoint1);
+            computeEPSNeighborhoodByRtree(currIndex, seedResult);
+//            seedResult = m_searchRegion.get(currIndex);
 
             if (seedResult.size() >= m_minLnsParam) {
                 for(Integer iter: seedResult){
@@ -1057,7 +1059,7 @@ public class ClusterGen {
         Geometry searchRegion = get_bounding_box_of_line_segment(startPoint, endPoint, m_epsParam); //直接最大外接矩形
         List lst = m_tree.query(searchRegion.getEnvelopeInternal());
 
-        _locker.lock();
+//        _locker.lock();
         for (int i = 0; i < lst.size(); i++) {
             int segmentID = (int)lst.get(i);
 //            if(segmentID == 0){
@@ -1071,7 +1073,7 @@ public class ClusterGen {
             if (distance <= m_epsParam)
                 result.offer(segmentID);
         }
-        _locker.unlock();
+//        _locker.unlock();
 //        return result;
     }
 
